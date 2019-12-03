@@ -1,3 +1,5 @@
+#include <SoftwareSerial.h>
+
 #include "math.h"
 #include "line_sensor_manager.h"
 #include "spi_interface_slave.h"
