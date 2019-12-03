@@ -1,28 +1,23 @@
 {
     "configurations": [
         {
-            "name": "Win32",
+            "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "D:\\Development\\Arduino\\libraries\\**",
-                "C:\\Program Files (x86)\\Arduino\\tools\\**",
-                "C:\\Program Files (x86)\\Arduino\\libraries\\**",
-                "C:\\Program Files (x86)\\Arduino\\hardware\\tools\\avr\\**",
-                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\**"
+                "/opt/arduino-1.8.10/hardware/**",
+                "/opt/arduino-1.8.10/libraries/**",
+                "/home/tiziano/Arduino/libraries/**"
             ],
-            "forcedInclude": [
-                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\cores\\arduino\\Arduino.h"
-            ],
-            "intelliSenseMode": "${default}",
-            "compilerPath": "\"C:\\Users\\Tiziano\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino5\\bin\\avr-g++\"",
-            "cStandard": "c11",
-            "cppStandard": "c++17",
             "defines": [
                 "F_CPU=16000000L",
                 "ARDUINO=10865",
                 "ARDUINO_ARCH_AVR",
-                "ARDUINO_AVR_NANO"
-            ]
+                "ARDUINO_AVR_MEGA2560"
+            ],
+            "compilerPath": "/usr/bin/g++",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "clang-x64"
         }
     ],
     "version": 4
