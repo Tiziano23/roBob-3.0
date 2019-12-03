@@ -67,15 +67,12 @@ protected:
 
 public:
     Menu() {}
-    Menu(char id_[], Array<MenuItem> items_)
+    Menu(String id, Array<MenuItem> items) : id(id), items(items)
     {
-        id = String(id_);
-        items = items_;
         length = (int)items.size();
     }
-    Menu(char id_[])
+    Menu(String id) : id(id)
     {
-        id = String(id_);
         length = 0;
     }
     String getId()
@@ -242,17 +239,17 @@ private:
     Array<Menu *> menus;
     Menu *activeMenu;
 
-    bool waitForInput(Keyboard *k, bool animation)
+    bool waitForInput(Keyboard &k, bool animation)
     {
         while (true)
         {
-            if (k->pressedOnce(0))
+            if (k.pressedOnce(0))
             {
                 if (animation)
                     drawActionAborted();
                 return false;
             }
-            if (k->pressedOnce(2))
+            if (k.pressedOnce(2))
             {
                 if (animation)
                     drawActionCompleted();
@@ -260,13 +257,11 @@ private:
             }
         }
     }
-
     void clearDisplay()
     {
         d.clearDisplay();
         d.display();
     }
-
     void printMessage(char message[], int x, int y, int size)
     {
         d.clearDisplay();
@@ -275,7 +270,6 @@ private:
         d.print(message);
         d.display();
     }
-
     void clearRect(int16_t x, int16_t y, int16_t w, int16_t h)
     {
         d.fillRect(x, y, w, h, BLACK);
@@ -337,7 +331,6 @@ public:
     {
         activeMenu->draw();
     }
-
     void execSelectedItemAction()
     {
         activeMenu->execSelectedItemAction();
@@ -352,33 +345,29 @@ public:
     }
 
     template <class T>
-    T numberDialog(T n, T min, T max, T increment, Keyboard *k, void (*update)(T) = [](T) {})
+    T numberDialog(T n, T min, T max, T increment, Keyboard &k, void (*update)(T) = [](T) {})
     {
         T newN = n;
         T inc = increment;
-        k->update();
-        while (!k->pressedOnce(1))
+        k.update();
+        while (!k.pressedOnce(1))
         {
-            k->update();
-
-            if (k->pressedRepeat(0))
+            k.update();
+            if (k.pressedRepeat(0))
             {
                 newN -= inc;
                 inc += increment;
             }
-            else if (k->pressedRepeat(2))
+            else if (k.pressedRepeat(2))
             {
                 newN += inc;
                 inc += increment;
             }
-
-            if (!k->pressed(0) && !k->pressed(2))
+            if (!k.pressed(0) && !k.pressed(2))
             {
                 inc = increment;
             }
-
             newN = constrain(newN, min, max);
-
             update(newN);
             d.clearDisplay();
             d.setTextSize(2);
@@ -393,7 +382,7 @@ public:
         drawActionCompleted();
         return newN;
     }
-    void colorCalibrationWizard(SPIMasterInterface *spi, Keyboard *k)
+    void colorCalibrationWizard(SPIMasterInterface &spi, Keyboard &k)
     {
         d.clearDisplay();
         d.drawBitmap(8, 24, icons::cross_8, 8, 8, WHITE);
@@ -405,12 +394,12 @@ public:
         d.display();
         if (waitForInput(k, false))
         {
-            spi->execAction(CAL_COLOR);
+            spi.execAction(CAL_COLOR);
             drawLoadingBar("Calibrating", 500);
         }
         else
         {
-            spi->execAction(CAL_COLOR_ABORT);
+            spi.execAction(CAL_COLOR_ABORT);
             drawActionAborted();
             return;
         }
@@ -419,12 +408,12 @@ public:
         d.display();
         if (waitForInput(k, false))
         {
-            spi->execAction(CAL_COLOR);
+            spi.execAction(CAL_COLOR);
             drawLoadingBar("Calibrating", 500);
         }
         else
         {
-            spi->execAction(CAL_COLOR_ABORT);
+            spi.execAction(CAL_COLOR_ABORT);
             drawActionAborted();
             return;
         }
@@ -433,12 +422,12 @@ public:
         d.display();
         if (waitForInput(k, false))
         {
-            spi->execAction(CAL_COLOR);
+            spi.execAction(CAL_COLOR);
             drawLoadingBar("Calibrating", 500);
         }
         else
         {
-            spi->execAction(CAL_COLOR_ABORT);
+            spi.execAction(CAL_COLOR_ABORT);
             drawActionAborted();
         }
     }
@@ -479,7 +468,6 @@ public:
         d.display();
         delay(500);
     }
-
     void printColorData(bool left, bool right, bool aluminium)
     {
         d.clearDisplay();

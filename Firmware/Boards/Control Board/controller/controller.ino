@@ -1,4 +1,4 @@
-#include <EEPROM.h>
+// #include <EEPROM.h>
 
 // Servo Pins --------------------//
 #define SERVO_LEFT 7
@@ -76,9 +76,11 @@ Keyboard keyboard(KB_BTN_LEFT, KB_BTN_CENTER, KB_BTN_RIGHT, KB_CONNECTED);
 MainMenu mainMenu("main-menu");
 
 ListMenu testing("testing");
-ListMenu settings("settings");
-ListMenu ledSettings("led-settings");
 ListMenu calibration("calibration");
+ListMenu settings("settings");
+
+ListMenu ledSettings("led-settings");
+ListMenu pidSettings("pid-settings");
 
 Gui gui;
 
@@ -115,44 +117,29 @@ void setup()
         spi.execAction(CAL_IR);
         gui.drawLoadingBar("Calibrating", 5000);
     }));
-    calibration.addItem(MenuItem("Color", []() {
-        gui.colorCalibrationWizard(&spi, &keyboard);
-    }));
+    calibration.addItem(MenuItem("Color", []() { gui.colorCalibrationWizard(spi, keyboard); }));
     gui.addMenu(&calibration);
 
-    settings.addItem(MenuItem("Back", []() {
-        gui.setActiveMenu("main-menu");
-    }));
-    settings.addItem(MenuItem("Speed", []() {
-        movement.setSpeed(gui.numberDialog(movement.getSpeed(), 0.0, 1.0, 0.05, &keyboard));
-    }));
-    settings.addItem(MenuItem("Enable color", []() {
-        spi.execAction(ENABLE_COLOR);
-    }));
+    settings.addItem(MenuItem("Back", []() { gui.setActiveMenu("main-menu"); }));
+    settings.addItem(MenuItem("Enable color", []() { spi.execAction(ENABLE_COLOR); }));
     settings.addItem(MenuItem("System Test", []() { gui.setActiveMenu("testing"); }));
+    settings.addItem(MenuItem("PID Settings", []() { gui.setActiveMenu("pid-settings"); }));
     settings.addItem(MenuItem("RGB LED Settings", []() { gui.setActiveMenu("led-settings"); }));
     gui.addMenu(&settings);
 
+    pidSettings.addItem(MenuItem("Speed", []() {
+        movement.setSpeed(gui.numberDialog(movement.getSpeed(), 0.0, 1.0, 0.01, keyboard));
+    }));
+
     ledSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
-    ledSettings.addItem(MenuItem("Set R", []() {
-        led.setR(gui.numberDialog<int>(led.getColor().r, 0, 255, 1, &keyboard, [](int r) {
-            led.setR(r);
-        }));
+    ledSettings.addItem(MenuItem("Set Hue", []() {
+        led.setH(gui.numberDialog<float>(led.getColor().getH(), 0, 360, 1, keyboard, [](float h) { led.setH(h); }));
     }));
-    ledSettings.addItem(MenuItem("Set G", []() {
-        led.setG(gui.numberDialog<int>(led.getColor().g, 0, 255, 1, &keyboard, [](int g) {
-            led.setG(g);
-        }));
+    ledSettings.addItem(MenuItem("Set Saturation", []() {
+        led.setS(gui.numberDialog<float>(led.getColor().getS(), 0, 1, 0.01, keyboard, [](float s) { led.setS(s); }));
     }));
-    ledSettings.addItem(MenuItem("Set B", []() {
-        led.setB(gui.numberDialog<int>(led.getColor().b, 0, 255, 1, &keyboard, [](int b) {
-            led.setB(b);
-        }));
-    }));
-    ledSettings.addItem(MenuItem("Set A", []() {
-        led.setA(gui.numberDialog<float>(led.getColor().a, 0.0, 100.0, 0.01, &keyboard, [](float a) {
-            led.setA(a);
-        }));
+    ledSettings.addItem(MenuItem("Set Brightness", []() {
+        led.setV(gui.numberDialog<float>(led.getColor().getV(), 0, 1, 0.01, keyboard, [](float v) { led.setV(v); }));
     }));
     gui.addMenu(&ledSettings);
 
@@ -169,21 +156,16 @@ void setup()
         }
     }));
     testing.addItem(MenuItem("Left Servo", []() {
-        gui.numberDialog<float>(0, -1, 1, 0.01, &keyboard, [](float n) {
-            movement.getLeftMotor()->setSpeed(n);
-        });
+        gui.numberDialog<float>(0, -1, 1, 0.01, keyboard, [](float n) { movement.getLeftMotor()->setSpeed(n); });
         movement.getLeftMotor()->setSpeed(0);
     }));
     testing.addItem(MenuItem("Right Servo", []() {
-        gui.numberDialog<float>(0, -1, 1, 0.01, &keyboard, [](float n) {
-            movement.getRightMotor()->setSpeed(n);
-        });
+        gui.numberDialog<float>(0, -1, 1, 0.01, keyboard, [](float n) { movement.getRightMotor()->setSpeed(n); });
         movement.getRightMotor()->setSpeed(0);
     }));
     gui.addMenu(&testing);
 
     gui.setActiveMenu("main-menu");
-
     gui.init();
 }
 
