@@ -345,7 +345,8 @@ public:
     }
 
     template <class T>
-    T numberDialog(T n, T min, T max, T increment, Keyboard &k, void (*update)(T) = [](T) {})
+    T numberDialog(
+        T n, T min, T max, T increment, Keyboard &k, void (*update)(T) = [](T) {})
     {
         T newN = n;
         T inc = increment;
