@@ -10,6 +10,9 @@
                 "/opt/arduino-1.8.10/libraries/**",
                 "/home/tiziano/Arduino/libraries/**"
             ],
+            "forcedInclude": [
+                "/home/tiziano/.arduino15/packages/arduino/hardware/avr/1.8.2/cores/arduino/Arduino.h"
+            ],
             "defines": [
                 "ARDUINO=10810",
                 "F_CPU=16000000L",
@@ -19,10 +22,7 @@
             "compilerPath": "/usr/bin/g++",
             "cStandard": "c11",
             "cppStandard": "c++17",
-            "intelliSenseMode": "${default}",
-            "forcedInclude": [
-                "/home/tiziano/.arduino15/packages/arduino/hardware/avr/1.8.2/cores/arduino/Arduino.h"
-            ]
+            "intelliSenseMode": "${default}"
         }
     ],
     "version": 4
