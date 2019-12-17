@@ -125,28 +125,30 @@ void setup()
     settings.addItem(MenuItem("RGB LED Settings", []() { gui.setActiveMenu("led-settings"); }));
     gui.addMenu(&settings);
 
+    pidSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
     pidSettings.addItem(MenuItem("Set speed", []() {
-        movement.setSpeed(gui.numberDialog(movement.getSpeed(), 0.0, 1.0, 0.01, keyboard));
+        movement.setSpeed(gui.numberDialog(movement.getSpeed(), 0.0, 1.0, 0.01, keyboard, Percentual));
     }));
     pidSettings.addItem(MenuItem("Set Kp", []() {
-        movement.setKp(gui.numberDialog(movement.getKp(), 0.0, 1.0, 0.001, keyboard));
+        movement.setKp(gui.numberDialog(movement.getKp(), 0.0, 10.0, 0.001, keyboard, Real3));
     }));
     pidSettings.addItem(MenuItem("Set Ki", []() {
-        movement.setKi(gui.numberDialog(movement.getKi(), 0.0, 1.0, 0.001, keyboard));
+        movement.setKi(gui.numberDialog(movement.getKi(), 0.0, 10.0, 0.001, keyboard, Real3));
     }));
     pidSettings.addItem(MenuItem("Set Kd", []() {
-        movement.setKd(gui.numberDialog(movement.getKd(), 0.0, 1.0, 0.001, keyboard));
+        movement.setKd(gui.numberDialog(movement.getKd(), 0.0, 10.0, 0.001, keyboard, Real3));
     }));
+    gui.addMenu(&pidSettings);
 
     ledSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
     ledSettings.addItem(MenuItem("Set Hue", []() {
-        led.setH(gui.numberDialog<float>(led.getColor().getH(), 0, 360, 1, keyboard, [](float h) { led.setH(h); }));
+        led.setH(gui.numberDialog<float>(led.getColor().getH(), 0, 360, 1, keyboard, Integer, [](float h) { led.setH(h); }));
     }));
     ledSettings.addItem(MenuItem("Set Saturation", []() {
-        led.setS(gui.numberDialog<float>(led.getColor().getS(), 0, 1, 0.01, keyboard, [](float s) { led.setS(s); }));
+        led.setS(gui.numberDialog<float>(led.getColor().getS(), 0, 1, 0.01, keyboard, Real2, [](float s) { led.setS(s); }));
     }));
     ledSettings.addItem(MenuItem("Set Brightness", []() {
-        led.setV(gui.numberDialog<float>(led.getColor().getV(), 0, 1, 0.01, keyboard, [](float v) { led.setV(v); }));
+        led.setV(gui.numberDialog<float>(led.getColor().getV(), 0, 1, 0.01, keyboard, Real2, [](float v) { led.setV(v); }));
     }));
     gui.addMenu(&ledSettings);
 
@@ -163,11 +165,11 @@ void setup()
         }
     }));
     testing.addItem(MenuItem("Left Servo", []() {
-        gui.numberDialog<float>(0, -1, 1, 0.01, keyboard, [](float n) { movement.getLeftMotor()->setSpeed(n); });
+        gui.numberDialog<float>(0, -1, 1, 0.01, keyboard, Percentual, [](float n) { movement.getLeftMotor()->setSpeed(n); });
         movement.getLeftMotor()->setSpeed(0);
     }));
     testing.addItem(MenuItem("Right Servo", []() {
-        gui.numberDialog<float>(0, -1, 1, 0.01, keyboard, [](float n) { movement.getRightMotor()->setSpeed(n); });
+        gui.numberDialog<float>(0, -1, 1, 0.01, keyboard, Percentual, [](float n) { movement.getRightMotor()->setSpeed(n); });
         movement.getRightMotor()->setSpeed(0);
     }));
     gui.addMenu(&testing);

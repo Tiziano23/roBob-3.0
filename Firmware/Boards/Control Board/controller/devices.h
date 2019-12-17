@@ -6,7 +6,8 @@ private:
     int r = 0;
     int g = 0;
     int b = 0;
-    float h = 0;
+
+    int h = 0;
     float s = 0;
     float v = 0;
 
@@ -21,8 +22,8 @@ public:
     Color(int _h, float _s, float _v)
     {
         h = constrain(_h, 0, 360);
-        s = constrain(_s, 0, 1);
-        v = constrain(_v, 0, 1);
+        s = constrain(_s, 0.0, 1.0);
+        v = constrain(_v, 0.0, 1.0);
     }
 
     void updateRGB()
@@ -283,5 +284,5 @@ public:
     void setS(int s) { color.setS(s); }
     void setV(int v) { color.setV(v); }
     void setColor(Color c) { color = c; }
-    Color getColor() { return color; }
+    Color &getColor() { return color; }
 };

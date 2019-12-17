@@ -233,6 +233,14 @@ public:
     }
 };
 
+enum NumberFormat
+{
+    Real2,
+    Real3,
+    Integer,
+    Percentual
+};
+
 class Gui
 {
 private:
@@ -346,14 +354,16 @@ public:
 
     template <class T>
     T numberDialog(
-        T n, T min, T max, T increment, Keyboard &k, void (*update)(T) = [](T) {})
+        T n, T min, T max, T increment, Keyboard &k, NumberFormat nf, void (*update)(T) = [](T) {})
     {
         T newN = n;
         T inc = increment;
+
         k.update();
         while (!k.pressedOnce(1))
         {
             k.update();
+
             if (k.pressedRepeat(0))
             {
                 newN -= inc;
@@ -364,22 +374,45 @@ public:
                 newN += inc;
                 inc += increment;
             }
-            if (!k.pressed(0) && !k.pressed(2))
+            else
             {
                 inc = increment;
             }
+
             newN = constrain(newN, min, max);
             update(newN);
+
             d.clearDisplay();
             d.setTextSize(2);
-            d.setCursor(59, 2);
-            d.print(newN);
+
+            switch (nf)
+            {
+            case Real2:
+                d.setCursor(49, 2);
+                d.print((double)newN, 2);
+                break;
+            case Real3:
+                d.setCursor(44, 2);
+                d.print((double)newN, 3);
+                break;
+            case Integer:
+                d.setCursor(49, 2);
+                d.print((int)newN);
+                break;
+            case Percentual:
+                d.setCursor(49, 2);
+                d.print((int)(newN * 100));
+                break;
+            }
+
             d.setCursor(20, 18);
             d.print("-");
             d.setCursor(108, 18);
             d.print("+");
+
             d.display();
         }
+
         drawActionCompleted();
         return newN;
     }
