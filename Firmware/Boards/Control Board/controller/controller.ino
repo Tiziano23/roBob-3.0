@@ -125,8 +125,17 @@ void setup()
     settings.addItem(MenuItem("RGB LED Settings", []() { gui.setActiveMenu("led-settings"); }));
     gui.addMenu(&settings);
 
-    pidSettings.addItem(MenuItem("Speed", []() {
+    pidSettings.addItem(MenuItem("Set speed", []() {
         movement.setSpeed(gui.numberDialog(movement.getSpeed(), 0.0, 1.0, 0.01, keyboard));
+    }));
+    pidSettings.addItem(MenuItem("Set Kp", []() {
+        movement.setKp(gui.numberDialog(movement.getKp(), 0.0, 1.0, 0.001, keyboard));
+    }));
+    pidSettings.addItem(MenuItem("Set Ki", []() {
+        movement.setKi(gui.numberDialog(movement.getKi(), 0.0, 1.0, 0.001, keyboard));
+    }));
+    pidSettings.addItem(MenuItem("Set Kd", []() {
+        movement.setKd(gui.numberDialog(movement.getKd(), 0.0, 1.0, 0.001, keyboard));
     }));
 
     ledSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));

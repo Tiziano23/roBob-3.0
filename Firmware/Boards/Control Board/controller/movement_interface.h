@@ -88,6 +88,25 @@ public:
         rightMotor.attach(pin);
     }
 
+    void stop()
+    {
+        pidController.SetMode(MANUAL);
+        leftMotor.setSpeed(0);
+        rightMotor.setSpeed(0);
+    }
+    void followLine()
+    {
+        pidController.SetMode(AUTOMATIC);
+        PIDInput = linePosition;
+        pidController.Compute();
+        leftMotor.setSpeed(calcLeftMotorSpeed(PIDOutput, movementSpeed));
+        rightMotor.setSpeed(calcRightMotorSpeed(PIDOutput, movementSpeed));
+    }
+    void setLinePosition(double position)
+    {
+        linePosition = position;
+    }
+
     ServoMotor *getLeftMotor()
     {
         return &leftMotor;
@@ -106,25 +125,29 @@ public:
         return movementSpeed;
     }
 
-    void setLinePosition(double position)
+    void setKp(double _Kp)
     {
-        linePosition = position;
+        Kp = _Kp;
     }
-
-    void stop()
+    double getKp()
     {
-        pidController.SetMode(MANUAL);
-        leftMotor.setSpeed(0);
-        rightMotor.setSpeed(0);
+        return Kp;
     }
-
-    void followLine()
+    void setKi(double _Ki)
     {
-        pidController.SetMode(AUTOMATIC);
-        PIDInput = linePosition;
-        pidController.Compute();
-        leftMotor.setSpeed(calcLeftMotorSpeed(PIDOutput, movementSpeed));
-        rightMotor.setSpeed(calcRightMotorSpeed(PIDOutput, movementSpeed));
+        Ki = _Ki;
+    }
+    double getKi()
+    {
+        return Ki;
+    }
+    void setKd(double _Kd)
+    {
+        Kd = _Kd;
+    }
+    double getKd()
+    {
+        return Kd;
     }
 };
 
