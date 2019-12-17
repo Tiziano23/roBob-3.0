@@ -24,8 +24,8 @@
 #define CAL_IR 0x00
 #define TOGGLE_LEFT_COLOR 0x01
 #define TOGGLE_RIGHT_COLOR 0x02
-// #define CAL_COLOR 0x01
-// #define CAL_COLOR_ABORT 0x02
+#define CAL_COLOR 0x03
+#define CAL_COLOR_ABORT 0x04
 //--------------------------------//
 extern HardwareSerial Serial;
 
@@ -49,7 +49,6 @@ void setup()
     pinMode(GREEN_SX, INPUT);
     pinMode(GREEN_DX, INPUT);
     pinMode(ALUMINIUM, INPUT);
-    // pinMode(CAL_COLOR_PIN, OUTPUT);
 
     pinMode(CONFIG_RX, INPUT);
     pinMode(CONFIG_TX, OUTPUT);
@@ -74,16 +73,10 @@ void setup()
             String("\"dx\":") + String(cfg.color_dx) +
             String("}"));
     });
-    // spi.setAction(CAL_COLOR, []() {
-    //     digitalWrite(CAL_COLOR_PIN, HIGH);
-    //     delayMicroseconds(25);
-    //     digitalWrite(CAL_COLOR_PIN, LOW);
-    // });
-    // spi.setAction(CAL_COLOR_ABORT, []() {
-    //     digitalWrite(CAL_COLOR_PIN, HIGH);
-    //     delayMicroseconds(75);
-    //     digitalWrite(CAL_COLOR_PIN, LOW);
-    // });
+    spi.setAction(CAL_COLOR, []() {
+    });
+    spi.setAction(CAL_COLOR_ABORT, []() {
+    });
 }
 
 void loop()
