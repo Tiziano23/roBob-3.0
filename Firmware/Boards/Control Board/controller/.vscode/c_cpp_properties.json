@@ -28,8 +28,8 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "C:\\Program Files (x86)\\Arduino\\hardware\\**",
-                "C:\\Program Files (x86)\\Arduino\\libraries\\**",
+                "C:/Program Files (x86)/Arduino/hardware/**",
+                "C:/Program Files (x86)/Arduino/libraries/**",
                 "D:/Development/Robotics/Arduino/libraries/**",
                 "C:/Users/Tiziano/AppData/Local/Arduino15/packages/arduino/tools/**",
                 "C:/Users/Tiziano/AppData/Local/Arduino15/packages/arduino/hardware/avr/1.8.1/**"
