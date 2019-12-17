@@ -10,17 +10,17 @@ class ServoMotor
 {
 private:
     int pin;
-    bool inverted = false;
     double speed = 0;
     Servo motor = Servo();
 
 public:
+    bool inverted = false;
+
     ServoMotor() {}
-    ServoMotor(int pin, bool invert = false)
+    ServoMotor(int pin, bool invert = false) : inverted(invert)
     {
         attach(pin);
     }
-    ServoMotor(bool inverted) : inverted(inverted) {}
     void attach(int pin)
     {
         pin = pin;
@@ -53,22 +53,22 @@ private:
     double Kd = 0.085;
 
     PID pidController = PID(&PIDInput, &PIDOutput, &PIDSetpoint, Kp, Ki, Kd, DIRECT);
-    ServoMotor leftMotor = ServoMotor(true);
+    ServoMotor leftMotor = ServoMotor();
     ServoMotor rightMotor = ServoMotor();
 
     float calcLeftMotorSpeed(float x, float v)
     {
         if (x >= 0)
             return -pow(x, 1) * (1 + v) + v;
-        else if (x < 0)
-            return -pow(x, 1) * (1 - v) + v;
+        else
+            return pow(-x, 1) * (1 - v) + v;
     }
     float calcRightMotorSpeed(float x, float v)
     {
         if (x >= 0)
             return pow(x, 1) * (1 - v) + v;
-        else if (x < 0)
-            return pow(x, 1) * (1 + v) + v;
+        else
+            return -pow(-x, 1) * (1 + v) + v;
     }
 
 public:
@@ -76,6 +76,7 @@ public:
     {
         pidController.SetOutputLimits(-1, 1);
         pidController.SetMode(AUTOMATIC);
+        leftMotor.inverted = true;
     }
 
     void attachLeftMotor(int pin)
