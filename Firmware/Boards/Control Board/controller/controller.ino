@@ -1,5 +1,3 @@
-// #include <EEPROM.h>
-
 // Servo Pins --------------------//
 #define SERVO_LEFT 7
 #define SERVO_RIGHT 6
