@@ -17,13 +17,13 @@ public:
         r = constrain(_r, 0, 255);
         g = constrain(_g, 0, 255);
         b = constrain(_b, 0, 255);
-    };
-    Color(int _h, int _s, int _v)
+    }
+    Color(int _h, int _s, float _v)
     {
         h = constrain(_h, 0, 360);
         s = constrain(_s, 0, 1);
         v = constrain(_v, 0, 1);
-    };
+    }
 
     void updateRGB()
     {

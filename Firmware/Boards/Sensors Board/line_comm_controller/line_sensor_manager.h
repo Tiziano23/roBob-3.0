@@ -1,67 +1,89 @@
 #include <EEPROM.h>
 
 //-- EEPROM Memory Addreses --//
-#define EEPROM_MIN_CAL 0x00 /* 0x00 (00) - 0x1F (31) */
-#define EEPROM_MAX_CAL 0x20 /* 0x20 (32) - 0x3F (63) */
+#define EEPROM_MIN_CAL_ADDR 0x00 /* 0x00 (00) - 0x1F (31) */
+#define EEPROM_MAX_CAL_ADDR 0x20 /* 0x20 (32) - 0x3F (63) */
 //----------------------------//
 
 class QTR_Controller
 {
 private:
     int ledPin;
-    int *sensors;
+    int *sensor_pins;
 
-    int capacitorChargeTime = 10; //µs
+    int calibrationTime = 10000;          // ms
+    int capacitorChargeTime = 10;         // µs
+    int capacitorMaxDischargeTime = 1000; // µs
 
-    float sensor_value[8];
-    float calibratedMin[8];
-    float calibratedMax[8];
+    double sensor_value[8];
+    double sensor_min[8];
+    double sensor_max[8];
+
+    void loadCalibrationFromEEPROM()
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            EEPROM.get(EEPROM_MIN_CAL_ADDR + (i * sizeof(double)), sensor_min[i]);
+            EEPROM.get(EEPROM_MAX_CAL_ADDR + (i * sizeof(double)), sensor_max[i]);
+        }
+    }
+
+    void saveCalibrationToEEPROM()
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            EEPROM.put(EEPROM_MIN_CAL_ADDR + (i * sizeof(double)), sensor_min[i]);
+            EEPROM.put(EEPROM_MAX_CAL_ADDR + (i * sizeof(double)), sensor_max[i]);
+        }
+    }
 
 public:
-    QTR_Controller(int sensors_[], int ledPin_) : sensors(sensors_), ledPin(ledPin_) {}
+    QTR_Controller(int sensor_pins[], int ledPin) : sensor_pins(sensor_pins), ledPin(ledPin) {}
 
     void init()
     {
         pinMode(ledPin, OUTPUT);
         for (int i = 0; i < 8; i++)
         {
-            EEPROM.get(EEPROM_MIN_CAL + (i * sizeof(float)), calibratedMin[i]);
-            EEPROM.get(EEPROM_MAX_CAL + (i * sizeof(float)), calibratedMax[i]);
+            pinMode(sensor_pins[i], OUTPUT);
         }
+        loadCalibrationFromEEPROM();
     }
 
-    bool checkRightAngle(int dir)
-    {
-        bool left = true;
-        bool right = true;
-        for (int i = 0; i < 8; i++)
-        {
-            if (i < 4)
-            {
-                if (sensor_value[i] < 900)
-                    left = false;
-            }
-            else
-            {
-                if (sensor_value[i] < 900)
-                    right = false;
-            }
-        }
-        return dir == 1 ? right : left;
-    }
-    int checkFull()
-    {
-        bool fullWhite = true;
-        bool fullBlack = true;
-        for (int i = 0; i < 8; i++)
-        {
-            if (sensor_value[i] > 200)
-                fullWhite = false;
-            if (sensor_value[i] < 800)
-                fullBlack = false;
-        }
-        return (fullWhite * -1) + fullBlack;
-    }
+    // bool checkRightAngle(int dir)
+    // {
+    //     bool left = true;
+    //     bool right = true;
+    //     for (int i = 0; i < 8; i++)
+    //     {
+    //         if (i < 4)
+    //         {
+    //             if (sensor_value[i] < 900)
+    //                 left = false;
+    //         }
+    //         else
+    //         {
+    //             if (sensor_value[i] < 900)
+    //                 right = false;
+    //         }
+    //     }
+    //     return dir == 1 ? right : left;
+    // }
+
+    // int checkFull()
+    // {
+    //     bool fullWhite = true;
+    //     bool fullBlack = true;
+    //     for (int i = 0; i < 8; i++)
+    //     {
+    //         if (sensor_value[i] > 200)
+    //             fullWhite = false;
+    //         if (sensor_value[i] < 800)
+    //             fullBlack = false;
+    //     }
+    //     return (fullWhite * -1) + fullBlack;
+    // }
+
     float getLine()
     {
         measure_times();
@@ -72,18 +94,18 @@ public:
             vSum += sensor_value[i] * i * 1000;
             wSum += sensor_value[i];
         }
-        if (checkFull() != 0)
-        {
-            return 3500;
-        }
-        if (checkRightAngle(-1))
-        {
-            return 0;
-        }
-        if (checkRightAngle(1))
-        {
-            return 7000;
-        }
+        // if (checkFull() != 0)
+        // {
+        //     return 3500;
+        // }
+        // if (checkRightAngle(-1))
+        // {
+        //     return 0;
+        // }
+        // if (checkRightAngle(1))
+        // {
+        //     return 7000;
+        // }
         return vSum / wSum;
     }
 
@@ -91,30 +113,24 @@ public:
     {
         for (int i = 0; i < 8; i++)
         {
-            calibratedMin[i] = 2000;
-            calibratedMax[i] = 0;
+            sensor_min[i] = capacitorMaxDischargeTime;
+            sensor_max[i] = 0;
         }
         unsigned long startTime = millis();
-        while (millis() - startTime < 5000)
+        while (millis() - startTime < calibrationTime)
         {
             measure_times_raw();
             for (int i = 0; i < 8; i++)
             {
-                if (sensor_value[i] > 50)
-                {
-                    if (sensor_value[i] < calibratedMin[i])
-                        calibratedMin[i] = sensor_value[i];
-                    if (sensor_value[i] > calibratedMax[i])
-                        calibratedMax[i] = sensor_value[i];
-                }
+                if (sensor_value[i] < sensor_min[i])
+                    sensor_min[i] = sensor_value[i];
+                if (sensor_value[i] > sensor_max[i])
+                    sensor_max[i] = sensor_value[i];
+                printValues();
             }
         }
-        clearTimes();
-        for (int i = 0; i < 8; i++)
-        {
-            EEPROM.put(EEPROM_MIN_CAL + (i * sizeof(float)), calibratedMin[i]);
-            EEPROM.put(EEPROM_MAX_CAL + (i * sizeof(float)), calibratedMax[i]);
-        }
+        printCalibrationValues();
+        saveCalibrationToEEPROM();
     }
 
     void clearTimes()
@@ -129,61 +145,80 @@ public:
         measure_times_raw();
         for (int i = 0; i < 8; i++)
         {
-            sensor_value[i] = constrain(sensor_value[i], calibratedMin[i], calibratedMax[i]);
-            sensor_value[i] = map(sensor_value[i], calibratedMin[i], calibratedMax[i], 0, 1000);
-            if (sensor_value[i] < 50)
-                sensor_value[i] = 0;
+            sensor_value[i] = constrain(sensor_value[i], sensor_min[i], sensor_max[i]);
+            sensor_value[i] = map(sensor_value[i], sensor_min[i], sensor_max[i], 0, 1000);
         }
     }
     void measure_times_raw()
     {
         digitalWrite(ledPin, HIGH); //Turn on LEDs
         delayMicroseconds(10);      // Give LEDs time to react
+
         for (int i = 0; i < 8; i++)
         {
-
-            digitalWrite(sensors[i], HIGH);
+            digitalWrite(sensor_pins[i], HIGH);
             delayMicroseconds(capacitorChargeTime); // Wait for the capacitors to charge up
 
-            pinMode(sensors[i], INPUT); // Switch to high impedence mode
+            pinMode(sensor_pins[i], INPUT); // Switch to high impedence mode
 
-            unsigned long startTime = micros();
-            while (digitalRead(sensors[i]) && micros() - startTime < calibratedMin[i] + 1000)
-                ;
-            sensor_value[i] = (micros() - startTime);
+            unsigned long tStart = micros();
+            unsigned long dischargeTime = 0;
+            while (digitalRead(sensor_pins[i]) == HIGH && dischargeTime < capacitorMaxDischargeTime)
+                dischargeTime = micros() - tStart;
+            sensor_value[i] = dischargeTime;
 
-            pinMode(sensors[i], OUTPUT); // Revert back to charge mode
-            digitalWrite(sensors[i], LOW);
+            pinMode(sensor_pins[i], OUTPUT); // Revert back to charge mode
+            digitalWrite(sensor_pins[i], LOW);
         }
-        //Turn off LEDs
+
         digitalWrite(ledPin, LOW); // Turn off LEDS
     }
 
     void printValues()
     {
-        measure_times();
-        int maxIndex = 0;
-        float maxVal = 0;
-        for (int i = 0; i < 8; i++)
-        {
-            if (sensor_value[i] > maxVal)
-            {
-                maxVal = sensor_value[i];
-                maxIndex = i;
-            }
-        }
-        Serial.print("|");
-        for (int i = 0; i < 8; i++)
-        {
-            if (i == maxIndex)
-                Serial.print("*");
-            else
-                Serial.print(".");
-        }
-        Serial.print("| - ");
+        measure_times_raw();
+        // int maxIndex = 0;
+        // float maxVal = 0;
+        // for (int i = 0; i < 8; i++)
+        // {
+        //     if (sensor_value[i] > maxVal)
+        //     {
+        //         maxVal = sensor_value[i];
+        //         maxIndex = i;
+        //     }
+        // }
+        // Serial.print("|");
+        // for (int i = 0; i < 8; i++)
+        // {
+        //     if (i == maxIndex)
+        //         Serial.print("*");
+        //     else
+        //         Serial.print(".");
+        // }
+        // Serial.print("| - ");
         for (int i = 0; i < 8; i++)
         {
             Serial.print(sensor_value[i]);
+            Serial.print("|");
+            Serial.print(sensor_min[i]);
+            Serial.print("|");
+            Serial.print(sensor_max[i]);
+
+            if (i < 7)
+                Serial.print(", ");
+        }
+        Serial.println();
+    }
+
+    void printCalibrationValues()
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            Serial.print("min: ");
+            Serial.print(sensor_min[i]);
+            Serial.print("| max:");
+            Serial.print(sensor_max[i]);
+
             if (i < 7)
                 Serial.print(", ");
         }
