@@ -142,7 +142,7 @@ void setup()
 
     ledSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
     ledSettings.addItem(MenuItem("Set Hue", []() {
-        led.setH(gui.numberDialog<float>(led.getColor().getH(), 0, 360, 1, keyboard, Integer, [](float h) { led.setH(h); }));
+        led.setH(gui.numberDialog<int>(led.getColor().getH(), 0, 360, 1, keyboard, Integer, [](int h) { led.setH(h); }));
     }));
     ledSettings.addItem(MenuItem("Set Saturation", []() {
         led.setS(gui.numberDialog<float>(led.getColor().getS(), 0, 1, 0.01, keyboard, Real2, [](float s) { led.setS(s); }));
@@ -176,6 +176,9 @@ void setup()
 
     gui.setActiveMenu("main-menu");
     gui.init();
+
+    // led.getColor().setV(0.5);
+    // Serial.println(led.getColor().getV());
 }
 
 void loop()

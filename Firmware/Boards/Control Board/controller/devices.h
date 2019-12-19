@@ -11,29 +11,17 @@ private:
     float s = 0;
     float v = 0;
 
-public:
-    Color() {}
-    Color(int _r, int _g, int _b)
-    {
-        r = constrain(_r, 0, 255);
-        g = constrain(_g, 0, 255);
-        b = constrain(_b, 0, 255);
-    }
-    Color(int _h, float _s, float _v)
-    {
-        h = constrain(_h, 0, 360);
-        s = constrain(_s, 0.0, 1.0);
-        v = constrain(_v, 0.0, 1.0);
-    }
-
     void updateRGB()
     {
-        float kR = (5 + (int)h / 60) % 6;
-        float kG = (3 + (int)h / 60) % 6;
-        float kB = (1 + (int)h / 60) % 6;
-        r = v - v * s * max(min(min(kR, 4 - kR), 1), 0);
-        g = v - v * s * max(min(min(kG, 4 - kG), 1), 0);
-        b = v - v * s * max(min(min(kB, 4 - kB), 1), 0);
+        float kR = (5 + (float)h / 60.0);
+        float kG = (3 + (float)h / 60.0);
+        float kB = (1 + (float)h / 60.0);
+        kR = kR - ((int)kR / 6) * 6;
+        kG = kG - ((int)kG / 6) * 6;
+        kB = kB - ((int)kB / 6) * 6;
+        r = (v - v * s * max(min(min(kR, 4 - kR), 1), 0)) * 255;
+        g = (v - v * s * max(min(min(kG, 4 - kG), 1), 0)) * 255;
+        b = (v - v * s * max(min(min(kB, 4 - kB), 1), 0)) * 255;
     }
     void updateHSV()
     {
@@ -48,6 +36,23 @@ public:
             k = n ? (4 + (r - g) / n) : 0;
         h = 60 * (k < 0 ? k + 6 : k);
         s = v ? 0 : n / v;
+    }
+
+public:
+    Color() {}
+    Color(int _r, int _g, int _b)
+    {
+        r = constrain(_r, 0, 255);
+        g = constrain(_g, 0, 255);
+        b = constrain(_b, 0, 255);
+        updateHSV();
+    }
+    Color(int _h, float _s, float _v)
+    {
+        h = constrain(_h, 0, 360);
+        s = constrain(_s, 0.0, 1.0);
+        v = constrain(_v, 0.0, 1.0);
+        updateRGB();
     }
 
     void setR(int _r)
@@ -105,8 +110,8 @@ private:
     bool pressed = false;
     unsigned long lastRepeat = 0;
     unsigned long lastPressed = 0;
-    unsigned int repeatDeleay = 750;
-    unsigned int repeatPeriod = 100;
+    unsigned int repeatDeleay = 750; // ms
+    unsigned int repeatPeriod = 25;  // ms
 
 public:
     Button() {}
@@ -276,13 +281,23 @@ public:
         pinMode(r_pin, OUTPUT);
         pinMode(g_pin, OUTPUT);
         pinMode(b_pin, OUTPUT);
-        digitalWrite(r_pin, LOW);
-        digitalWrite(g_pin, LOW);
-        digitalWrite(b_pin, LOW);
+        applyColor();
     }
-    void setH(int h) { color.setH(h); }
-    void setS(int s) { color.setS(s); }
-    void setV(int v) { color.setV(v); }
+    void setH(int h)
+    {
+        color.setH(h);
+        applyColor();
+    }
+    void setS(float s)
+    {
+        color.setS(s);
+        applyColor();
+    }
+    void setV(float v)
+    {
+        color.setV(v);
+        applyColor();
+    }
     void setColor(Color c) { color = c; }
     Color &getColor() { return color; }
 };

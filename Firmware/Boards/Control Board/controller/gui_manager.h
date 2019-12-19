@@ -356,8 +356,9 @@ public:
     T numberDialog(
         T n, T min, T max, T increment, Keyboard &k, NumberFormat nf, void (*update)(T) = [](T) {})
     {
-        T newN = n;
         T inc = increment;
+        T vel = 1;
+        T newN = n;
 
         k.update();
         while (!k.pressedOnce(1))
@@ -367,16 +368,20 @@ public:
             if (k.pressedRepeat(0))
             {
                 newN -= inc;
-                inc += increment;
+                inc *= vel;
+                vel += 0.01;
             }
             else if (k.pressedRepeat(2))
             {
                 newN += inc;
-                inc += increment;
+                inc *= vel;
+                vel += 0.01;
             }
-            else
+
+            if (!k.pressed(0) && !k.pressed(2))
             {
                 inc = increment;
+                vel = 1;
             }
 
             newN = constrain(newN, min, max);
