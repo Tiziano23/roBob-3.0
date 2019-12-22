@@ -1,7 +1,16 @@
 {
 	"folders": [
 		{
-			"path": "."
+			"name": "Assets",
+			"path": "Assets"
+		},
+		{
+			"name": "Firmware",
+			"path": "Firmware"
+		},
+		{
+			"name": "Layouts",
+			"path": "Layouts"
 		}
 	]
 }
