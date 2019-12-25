@@ -17,6 +17,7 @@ class MenuItem
 {
 private:
     char *label;
+    bool enabled;
     void_function action;
     uint8_t *icon = icons::null;
 
@@ -43,6 +44,23 @@ public:
         icon = icon_;
     }
 
+    bool isEnabled()
+    {
+        return enabled;
+    }
+    void enable()
+    {
+        enabled = true;
+    }
+    void disable()
+    {
+        enabled = false;
+    }
+    void setState(bool enabled_)
+    {
+        enabled = enabled_;
+    }
+
     void_function getAction()
     {
         return action;
@@ -64,6 +82,11 @@ protected:
     Array<MenuItem> items;
     int length = 0;
     int selectedItemIndex = 0;
+
+    MenuItem &getSelectedItem()
+    {
+        return items[selectedItemIndex];
+    }
 
 public:
     Menu() {}
@@ -88,6 +111,10 @@ public:
         items.add(item);
         length = (int)items.size();
     }
+    MenuItem &getItem(int id)
+    {
+        return items[id];
+    }
     void setSelectedItemIndex(int index)
     {
         selectedItemIndex = index;
@@ -96,9 +123,15 @@ public:
     {
         return selectedItemIndex;
     }
-    void execSelectedItemAction()
+    bool execSelectedItemAction()
     {
-        items[selectedItemIndex].execAction();
+        if (getSelectedItem().isEnabled())
+        {
+            items[selectedItemIndex].execAction();
+            return true;
+        }
+        else
+            return false;
     }
     virtual void draw() {}
     virtual bool selectNextItem() {}
@@ -251,13 +284,13 @@ private:
     {
         while (true)
         {
-            if (k.pressedOnce(0))
+            if (k.pressedOnce(LEFT))
             {
                 if (animation)
                     drawActionAborted();
                 return false;
             }
-            if (k.pressedOnce(2))
+            if (k.pressedOnce(RIGHT))
             {
                 if (animation)
                     drawActionCompleted();
@@ -339,9 +372,9 @@ public:
     {
         activeMenu->draw();
     }
-    void execSelectedItemAction()
+    bool execSelectedItemAction()
     {
-        activeMenu->execSelectedItemAction();
+        return activeMenu->execSelectedItemAction();
     }
     bool selectNextItem()
     {

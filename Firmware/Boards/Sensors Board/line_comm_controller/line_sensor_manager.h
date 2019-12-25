@@ -84,11 +84,11 @@ public:
     //     return (fullWhite * -1) + fullBlack;
     // }
 
-    float getLine()
+    double getLine()
     {
         measure_times();
-        float vSum = 0;
-        float wSum = 0;
+        double vSum = 0;
+        double wSum = 0;
         for (int i = 0; i < 8; i++)
         {
             vSum += sensor_value[i] * i * 1000;
@@ -209,7 +209,6 @@ public:
         }
         Serial.println();
     }
-
     void printCalibrationValues()
     {
         for (int i = 0; i < 8; i++)

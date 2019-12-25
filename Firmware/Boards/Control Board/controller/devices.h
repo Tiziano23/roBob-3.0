@@ -161,6 +161,12 @@ public:
     }
 };
 
+enum KeyboardButton
+{
+    LEFT,
+    MIDDLE,
+    RIGHT
+};
 class Keyboard
 {
 private:
@@ -190,17 +196,17 @@ public:
             buttons[i].update();
         }
     }
-    bool pressed(int i)
+    bool pressed(KeyboardButton b)
     {
-        return buttons[i].isPressed();
+        return buttons[b].isPressed();
     }
-    bool pressedOnce(int i)
+    bool pressedOnce(KeyboardButton b)
     {
-        return buttons[i].isPressedOnce();
+        return buttons[b].isPressedOnce();
     }
-    bool pressedRepeat(int i)
+    bool pressedRepeat(KeyboardButton b)
     {
-        return buttons[i].isPressedRepeat();
+        return buttons[b].isPressedRepeat();
     }
     bool isConnected()
     {

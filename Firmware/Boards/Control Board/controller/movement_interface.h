@@ -2,9 +2,17 @@
 #include <Servo.h>
 #include <PID_v1.h>
 
+#include "../../../Libraries/Arduino/math.h"
+
 // Servos Costants ---------------//
-#define TURN_SPEED 14.28 // 14.28 °/s
+#define TURN_SPEED 14.28 // °/s
 //--------------------------------//
+
+enum ServoMode
+{
+    NORMAL,
+    INVERTED
+};
 
 class ServoMotor
 {
@@ -12,12 +20,11 @@ private:
     int pin;
     double speed = 0;
     Servo motor = Servo();
+    ServoMode mode = NORMAL;
 
 public:
-    bool inverted = false;
-
-    ServoMotor() {}
-    ServoMotor(int pin, bool invert = false) : inverted(invert)
+    ServoMotor(ServoMode mode = NORMAL) : mode(mode) {}
+    ServoMotor(int pin, ServoMode mode = NORMAL) : mode(mode)
     {
         attach(pin);
     }
@@ -27,14 +34,22 @@ public:
         motor.attach(pin);
         motor.writeMicroseconds(1500);
     }
-    void setSpeed(float speed_)
+    void setSpeed(double speed_)
     {
-        speed = constrain(inverted ? -speed_ : speed_, -1, 1);
-        motor.writeMicroseconds(1500 + speed * 75);
+        speed = constrain(mode == INVERTED ? -speed_ : speed_, -1, 1);
+        motor.writeMicroseconds(math::fMap(speed, -1, 1, 1430, 1570));
     }
-    float getSpeed()
+    double getSpeed()
     {
         return speed;
+    }
+    void setMode(ServoMode mode_)
+    {
+        mode = mode_;
+    }
+    ServoMode getMode()
+    {
+        return mode;
     }
 };
 
@@ -44,26 +59,26 @@ private:
     double movementSpeed = 0.25;
     double linePosition = 0;
 
-    double PIDInput = 0.0;
-    double PIDOutput;
-    double PIDSetpoint = 0.0;
+    double PIDInput = 0;
+    double PIDOutput = 0;
+    double PIDSetpoint = 0;
 
     double Kp = 2.85;
     double Ki = 0;
     double Kd = 0.085;
 
     PID pidController = PID(&PIDInput, &PIDOutput, &PIDSetpoint, Kp, Ki, Kd, DIRECT);
-    ServoMotor leftMotor = ServoMotor();
+    ServoMotor leftMotor = ServoMotor(INVERTED);
     ServoMotor rightMotor = ServoMotor();
 
-    float calcLeftMotorSpeed(float x, float v)
+    double calcLeftMotorSpeed(double x, double v)
     {
         if (x >= 0)
             return -pow(x, 1) * (1 + v) + v;
         else
             return pow(-x, 1) * (1 - v) + v;
     }
-    float calcRightMotorSpeed(float x, float v)
+    double calcRightMotorSpeed(double x, double v)
     {
         if (x >= 0)
             return pow(x, 1) * (1 - v) + v;
@@ -76,7 +91,6 @@ public:
     {
         pidController.SetOutputLimits(-1, 1);
         pidController.SetMode(AUTOMATIC);
-        leftMotor.inverted = true;
     }
 
     void attachLeftMotor(int pin)
@@ -128,6 +142,7 @@ public:
     void setKp(double _Kp)
     {
         Kp = _Kp;
+        pidController.SetTunings(Kp, Ki, Kd);
     }
     double getKp()
     {
@@ -136,6 +151,7 @@ public:
     void setKi(double _Ki)
     {
         Ki = _Ki;
+        pidController.SetTunings(Kp, Ki, Kd);
     }
     double getKi()
     {
@@ -144,6 +160,7 @@ public:
     void setKd(double _Kd)
     {
         Kd = _Kd;
+        pidController.SetTunings(Kp, Ki, Kd);
     }
     double getKd()
     {

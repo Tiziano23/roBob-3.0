@@ -119,7 +119,7 @@ public:
     double Vector::dot(Vector &v)
     {
         if (size != v.size)
-            return nan;
+            return 0;
         double result = 0;
         for (int i = 0; i < size; i++)
         {
@@ -152,7 +152,7 @@ public:
     static double dot(Vector &v, Vector &w)
     {
         if (v.size != w.size)
-            return nan;
+            return 0;
         double result = 0;
         for (int i = 0; i < v.size; i++)
         {
@@ -348,6 +348,11 @@ double avg(double values[], int n)
         s += values[i];
     }
     return s / (double)n;
+}
+
+double fMap(double n, double in_min, double in_max, double out_min, double out_max)
+{
+    return (n - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
 } // namespace math

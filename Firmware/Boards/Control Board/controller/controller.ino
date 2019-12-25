@@ -44,15 +44,14 @@
 #define COLOR 0x01
 //------ Functions ---------------//
 #define CAL_IR 0x00
-#define CAL_COLOR 0x01
-#define CAL_COLOR_ABORT 0x02
-#define ENABLE_COLOR 0x03
+#define TOGGLE_LEFT_COLOR 0x01
+#define TOGGLE_RIGHT_COLOR 0x02
+#define CAL_COLOR 0x03
+#define CAL_COLOR_ABORT 0x04
 //-------------------------------//
 
 // EEPROM Addresses --------------//
 //--------------------------------//
-
-#include "libraries/utils.h"
 
 #include "devices.h"
 #include "gui_manager.h"
@@ -81,20 +80,18 @@ ListMenu ledSettings("led-settings");
 ListMenu pidSettings("pid-settings");
 
 Gui gui;
-
-SPIMasterInterface spi;
 MovementInterface movement;
+SPIMasterInterface spi;
 
 void setup()
 {
     Serial.begin(115200);
 
-    led.init();
-    keyboard.init();
-    buzzer.init();
-
-    movement.init();
     spi.init();
+    led.init();
+    buzzer.init();
+    keyboard.init();
+    movement.init();
 
     // US_N.init();
     // US_NW.init();
@@ -119,7 +116,7 @@ void setup()
     gui.addMenu(&calibration);
 
     settings.addItem(MenuItem("Back", []() { gui.setActiveMenu("main-menu"); }));
-    settings.addItem(MenuItem("Enable color", []() { spi.execAction(ENABLE_COLOR); }));
+    // settings.addItem(MenuItem("Enable color", []() { spi.execAction(ENABLE_COLOR); }));
     settings.addItem(MenuItem("System Test", []() { gui.setActiveMenu("testing"); }));
     settings.addItem(MenuItem("PID Settings", []() { gui.setActiveMenu("pid-settings"); }));
     settings.addItem(MenuItem("RGB LED Settings", []() { gui.setActiveMenu("led-settings"); }));
@@ -154,13 +151,14 @@ void setup()
 
     testing.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
     testing.addItem(MenuItem("Color", []() {
-        while (!keyboard.pressedOnce(1))
+        keyboard.update();
+        while (!keyboard.pressedOnce(MIDDLE))
         {
             keyboard.update();
             byte colorData = spi.requestData<byte>(COLOR);
-            byte color_sx = colorData & 0x01;
-            byte color_dx = (colorData & 0x02) >> 1;
-            byte aluminium = (colorData & 0x04) >> 2;
+            byte color_sx = colorData & B1;
+            byte color_dx = (colorData & B10) >> 1;
+            byte aluminium = (colorData & B100) >> 2;
             gui.printColorData(color_sx, color_dx, aluminium);
         }
     }));
@@ -176,9 +174,6 @@ void setup()
 
     gui.setActiveMenu("main-menu");
     gui.init();
-
-    // led.getColor().setV(0.5);
-    // Serial.println(led.getColor().getV());
 }
 
 void loop()
@@ -186,23 +181,14 @@ void loop()
     keyboard.update();
 
     if (!keyboard.isConnected())
-    {
         followLine();
-    }
 
-    if (keyboard.pressedRepeat(0))
-    {
+    if (keyboard.pressedRepeat(LEFT))
         gui.selectPreviousItem() ? buzzer.actionTone() : buzzer.disabledTone();
-    }
-    else if (keyboard.pressedOnce(1))
-    {
-        buzzer.actionTone();
-        gui.execSelectedItemAction();
-    }
-    else if (keyboard.pressedRepeat(2))
-    {
+    else if (keyboard.pressedOnce(MIDDLE))
+        gui.execSelectedItemAction() ? buzzer.actionTone() : buzzer.disabledTone();
+    else if (keyboard.pressedRepeat(RIGHT))
         gui.selectNextItem() ? buzzer.actionTone() : buzzer.disabledTone();
-    }
 
     gui.drawActiveMenu();
 }
@@ -210,11 +196,11 @@ void loop()
 void followLine()
 {
     keyboard.update();
-    while (!keyboard.pressedOnce(1))
+    while (!keyboard.pressedOnce(MIDDLE))
     {
         keyboard.update();
 
-        float line = spi.requestData<float>(LINE);
+        double line = spi.requestData<double>(LINE);
         movement.setLinePosition(line / 3500.0 - 1.0);
         movement.followLine();
 

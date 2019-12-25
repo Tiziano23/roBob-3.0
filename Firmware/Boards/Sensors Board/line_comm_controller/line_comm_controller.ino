@@ -1,9 +1,3 @@
-#include <SoftwareSerial.h>
-
-#include "math.h"
-#include "line_sensor_manager.h"
-#include "spi_interface_slave.h"
-
 // Communication pins -------------//
 #define GREEN_SX 0  //BIT_1
 #define GREEN_DX 3  //BIT_2
@@ -12,11 +6,12 @@
 #define CONFIG_TX 6 //BIT_5
 //--------------------------------//
 
-// Pins --------------------------//
+// QTR Pins ----------------------//
 #define QTR_LED_PIN 7
 //--------------------------------//
 
-// Addresses ---------------------//
+// SPI Addresses -----------------//
+#define NONE 0x00
 //------ Data --------------------//
 #define LINE 0x00
 #define COLOR 0x01
@@ -27,6 +22,12 @@
 #define CAL_COLOR 0x03
 #define CAL_COLOR_ABORT 0x04
 //--------------------------------//
+
+#include <SoftwareSerial.h>
+
+#include "line_sensor_manager.h"
+#include "spi_interface_slave.h"
+
 extern HardwareSerial Serial;
 
 struct config
@@ -36,9 +37,8 @@ struct config
 } cfg;
 
 int sensor_pins[8] = {A5, A4, A3, A2, A1, A0, 8, 9};
-
-SoftwareSerial configSerial(CONFIG_RX, CONFIG_TX);
 QTR_Controller qtr(sensor_pins, QTR_LED_PIN);
+SoftwareSerial configSerial(CONFIG_RX, CONFIG_TX);
 SPISlaveInterface spi;
 
 void setup()
@@ -81,11 +81,11 @@ void setup()
 
 void loop()
 {
-    spi.setValue(LINE, (float)qtr.getLine());
-    spi.setValue(COLOR, decodeColorData());
+    spi.setValue<double>(LINE, qtr.getLine());
+    spi.setValue<byte>(COLOR, encodeColorData());
 }
 
-byte decodeColorData()
+byte encodeColorData()
 {
     byte data;
     data |= (digitalRead(GREEN_SX) & 1);
@@ -94,7 +94,7 @@ byte decodeColorData()
     return data;
 }
 
-//-- SPI Interrupt --//
+// SPI Interrupt -----------------//
 ISR(SPI_STC_vect)
 {
     spi.onTransmissionCompleted();

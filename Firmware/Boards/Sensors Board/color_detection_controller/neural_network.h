@@ -9,6 +9,7 @@ struct NetworkState
     double oB[4];
     double oW[8];
 };
+
 #include "assets/state.h"
 
 class NeuralNetwork
