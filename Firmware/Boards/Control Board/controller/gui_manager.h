@@ -3,11 +3,11 @@
 #include <Wire.h>
 #include <Adafruit_SSD1306.h>
 
-#include "libraries/utils.h"
+#include "libraries/math.h"
+#include "libraries/spi/spi_interface_master.h"
 
-#include "devices.h"
-#include "spi_interface_master.h"
 #include "assets/gui_icons.h"
+#include "devices.h"
 
 uint8_t WIDTH = 128;
 uint8_t HEIGHT = 32;
@@ -394,24 +394,24 @@ public:
         T newN = n;
 
         k.update();
-        while (!k.pressedOnce(1))
+        while (!k.pressedOnce(MIDDLE))
         {
             k.update();
 
-            if (k.pressedRepeat(0))
+            if (k.pressedRepeat(LEFT))
             {
                 newN -= inc;
                 inc *= vel;
                 vel += 0.01;
             }
-            else if (k.pressedRepeat(2))
+            else if (k.pressedRepeat(RIGHT))
             {
                 newN += inc;
                 inc *= vel;
                 vel += 0.01;
             }
 
-            if (!k.pressed(0) && !k.pressed(2))
+            if (!k.pressed(LEFT) && !k.pressed(RIGHT))
             {
                 inc = increment;
                 vel = 1;

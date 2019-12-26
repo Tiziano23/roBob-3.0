@@ -1,7 +1,0 @@
-{
-    "programmer": "AVRISP mkII",
-    "board": "arduino:avr:mega",
-    "port": "/dev/ttyACM0",
-    "sketch": "controller.ino",
-    "configuration": "cpu=atmega2560"
-}

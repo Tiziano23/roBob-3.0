@@ -71,7 +71,7 @@ public:
     Vector operator+(const Vector &v)
     {
         if (v.size != size)
-            throw;
+            return Vector();
         Vector t(size);
         for (int i = 0; i < size; i++)
         {
@@ -82,7 +82,7 @@ public:
     Vector operator*(const Vector &v)
     {
         if (v.size != size)
-            throw;
+            return Vector();
         Vector t(size);
         for (int i = 0; i < size; i++)
         {
@@ -243,7 +243,7 @@ public:
     Matrix operator+(const Matrix &m)
     {
         if (rows != m.rows || columns != m.columns)
-            throw;
+            return Matrix();
         Matrix t(columns, rows);
         for (int i = 0; i < size; i++)
         {
@@ -263,7 +263,7 @@ public:
     Matrix operator*(const Matrix &m)
     {
         if (columns != m.rows)
-            throw;
+            return Matrix();
         Matrix t(m.columns, rows);
         for (int i = 0; i < t.rows; i++)
         {
@@ -294,7 +294,7 @@ public:
     Vector operator*(Vector &v)
     {
         if (columns != v.getSize())
-            throw;
+            return Vector();
         Vector t(rows);
         for (int i = 0; i < rows; i++)
         {

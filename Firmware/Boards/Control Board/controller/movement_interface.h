@@ -2,7 +2,7 @@
 #include <Servo.h>
 #include <PID_v1.h>
 
-#include "../../../Libraries/Arduino/math.h"
+#include "libraries/math.h"
 
 // Servos Costants ---------------//
 #define TURN_SPEED 14.28 // °/s
@@ -56,16 +56,16 @@ public:
 class MovementInterface
 {
 private:
-    double movementSpeed = 0.25;
+    double movementSpeed = 0.35;
     double linePosition = 0;
 
     double PIDInput = 0;
     double PIDOutput = 0;
     double PIDSetpoint = 0;
 
-    double Kp = 2.85;
+    double Kp = 2.65;
     double Ki = 0;
-    double Kd = 0.085;
+    double Kd = 0.13;
 
     PID pidController = PID(&PIDInput, &PIDOutput, &PIDSetpoint, Kp, Ki, Kd, DIRECT);
     ServoMotor leftMotor = ServoMotor(INVERTED);

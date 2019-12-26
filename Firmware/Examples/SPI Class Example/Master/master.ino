@@ -1,4 +1,4 @@
-#include "spi_master.h"
+#include "spi_interface_master.h"
 
 Master master;
 void setup()
@@ -9,6 +9,6 @@ void setup()
 
 void loop()
 {
-    Serial.println(master.requestData<double>(0x00),4);
+    Serial.println(master.requestData<double>(0x00), 4);
     delay(1000);
 }

@@ -1,4 +1,4 @@
-#include "spi_slave.h"
+#include "spi_interface_slave.h"
 
 Slave slave;
 
@@ -6,7 +6,7 @@ void setup()
 {
     Serial.begin(115200);
     slave.init();
-    slave.setValue(0x00,1.2345);
+    slave.setValue(0x00, 1.2345);
 }
 
 void loop()
