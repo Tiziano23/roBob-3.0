@@ -9,18 +9,20 @@
 #include "assets/gui_icons.h"
 #include "devices.h"
 
-uint8_t WIDTH = 128;
-uint8_t HEIGHT = 32;
+enum NumberFormat
+{
+    Real2,
+    Real3,
+    Integer,
+    Percentual
+};
+
+const uint8_t WIDTH = 128;
+const uint8_t HEIGHT = 32;
 Adafruit_SSD1306 d(WIDTH, HEIGHT, &Wire, -1);
 
 class MenuItem
 {
-private:
-    char *label;
-    bool enabled;
-    void_function action;
-    uint8_t *icon = icons::null;
-
 public:
     MenuItem() {}
     MenuItem(char label[], void_function action) : label(label), action(action) {}
@@ -73,21 +75,16 @@ public:
     {
         action();
     }
+
+private:
+    char *label;
+    bool enabled;
+    void_function action;
+    uint8_t *icon = icons::null;
 };
 
 class Menu
 {
-protected:
-    String id;
-    Array<MenuItem> items;
-    int length = 0;
-    int selectedItemIndex = 0;
-
-    MenuItem &getSelectedItem()
-    {
-        return items[selectedItemIndex];
-    }
-
 public:
     Menu() {}
     Menu(String id, Array<MenuItem> items) : id(id), items(items)
@@ -136,6 +133,17 @@ public:
     virtual void draw() {}
     virtual bool selectNextItem() {}
     virtual bool selectPreviousItem() {}
+
+protected:
+    String id;
+    Array<MenuItem> items;
+    int length = 0;
+    int selectedItemIndex = 0;
+
+    MenuItem &getSelectedItem()
+    {
+        return items[selectedItemIndex];
+    }
 };
 
 class ListMenu : public Menu
@@ -203,10 +211,6 @@ public:
 
 class MainMenu : public Menu
 {
-private:
-    int scrollLeft = 0;
-    float smoothScrollLeft = 0;
-
 public:
     MainMenu() {}
     MainMenu(char id[]) : Menu(id) {}
@@ -264,58 +268,14 @@ public:
         else
             return false;
     }
-};
 
-enum NumberFormat
-{
-    Real2,
-    Real3,
-    Integer,
-    Percentual
+private:
+    int scrollLeft = 0;
+    float smoothScrollLeft = 0;
 };
 
 class Gui
 {
-private:
-    Array<Menu *> menus;
-    Menu *activeMenu;
-
-    bool waitForInput(Keyboard &k, bool animation)
-    {
-        while (true)
-        {
-            if (k.pressedOnce(LEFT))
-            {
-                if (animation)
-                    drawActionAborted();
-                return false;
-            }
-            if (k.pressedOnce(RIGHT))
-            {
-                if (animation)
-                    drawActionCompleted();
-                return true;
-            }
-        }
-    }
-    void clearDisplay()
-    {
-        d.clearDisplay();
-        d.display();
-    }
-    void printMessage(char message[], int x, int y, int size)
-    {
-        d.clearDisplay();
-        d.setTextSize(size);
-        d.setCursor(x, y);
-        d.print(message);
-        d.display();
-    }
-    void clearRect(int16_t x, int16_t y, int16_t w, int16_t h)
-    {
-        d.fillRect(x, y, w, h, BLACK);
-    }
-
 public:
     void init()
     {
@@ -387,38 +347,40 @@ public:
 
     template <class T>
     T numberDialog(
-        T n, T min, T max, T increment, Keyboard &k, NumberFormat nf, void (*update)(T) = [](T) {})
+        T n, T min, T max, T step, Keyboard &k, NumberFormat nf, void (*update)(T) = [](T) {})
     {
-        T inc = increment;
-        T vel = 1;
-        T newN = n;
+        float v = step, a = step * 0.0001;
+        T inc = 0;
+        T newVal = n;
 
         k.update();
         while (!k.pressedOnce(MIDDLE))
         {
             k.update();
 
-            if (k.pressedRepeat(LEFT))
-            {
-                newN -= inc;
-                inc *= vel;
-                vel += 0.01;
-            }
-            else if (k.pressedRepeat(RIGHT))
-            {
-                newN += inc;
-                inc *= vel;
-                vel += 0.01;
-            }
-
             if (!k.pressed(LEFT) && !k.pressed(RIGHT))
             {
-                inc = increment;
-                vel = 1;
+                v = step;
+                inc = 0;
+            }
+            else if (!(k.pressed(LEFT) && k.pressed(RIGHT)))
+            {
+                if (k.pressedRepeat(LEFT))
+                {
+                    v += a;
+                    inc += v;
+                    newVal -= inc;
+                }
+                if (k.pressedRepeat(RIGHT))
+                {
+                    v += a;
+                    inc += v;
+                    newVal += inc;
+                }
             }
 
-            newN = constrain(newN, min, max);
-            update(newN);
+            newVal = constrain(newVal, min, max);
+            update(newVal);
 
             d.clearDisplay();
             d.setTextSize(2);
@@ -427,19 +389,19 @@ public:
             {
             case Real2:
                 d.setCursor(49, 2);
-                d.print((double)newN, 2);
+                d.print((double)newVal, 2);
                 break;
             case Real3:
                 d.setCursor(44, 2);
-                d.print((double)newN, 3);
+                d.print((double)newVal, 3);
                 break;
             case Integer:
                 d.setCursor(49, 2);
-                d.print((int)newN);
+                d.print((int)newVal);
                 break;
             case Percentual:
                 d.setCursor(49, 2);
-                d.print((int)(newN * 100));
+                d.print((int)(newVal * 100));
                 break;
             }
 
@@ -450,9 +412,9 @@ public:
 
             d.display();
         }
-
+        update(newVal);
         drawActionCompleted();
-        return newN;
+        return newVal;
     }
     void colorCalibrationWizard(SPIMasterInterface &spi, Keyboard &k)
     {
@@ -552,5 +514,45 @@ public:
         d.print("   ");
         d.println(aluminium);
         d.display();
+    }
+
+private:
+    Array<Menu *> menus;
+    Menu *activeMenu;
+
+    bool waitForInput(Keyboard &k, bool animation)
+    {
+        while (true)
+        {
+            if (k.pressedOnce(LEFT))
+            {
+                if (animation)
+                    drawActionAborted();
+                return false;
+            }
+            if (k.pressedOnce(RIGHT))
+            {
+                if (animation)
+                    drawActionCompleted();
+                return true;
+            }
+        }
+    }
+    void clearDisplay()
+    {
+        d.clearDisplay();
+        d.display();
+    }
+    void printMessage(char message[], int x, int y, int size)
+    {
+        d.clearDisplay();
+        d.setTextSize(size);
+        d.setCursor(x, y);
+        d.print(message);
+        d.display();
+    }
+    void clearRect(int16_t x, int16_t y, int16_t w, int16_t h)
+    {
+        d.fillRect(x, y, w, h, BLACK);
     }
 };

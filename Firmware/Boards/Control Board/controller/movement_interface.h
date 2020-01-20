@@ -3,6 +3,7 @@
 #include <PID_v1.h>
 
 #include "libraries/math.h"
+#include "devices.h"
 
 // Servos Costants ---------------//
 #define TURN_SPEED 14.28 // °/s
@@ -16,32 +17,49 @@ enum ServoMode
 
 class ServoMotor
 {
-private:
-    int pin;
-    double speed = 0;
-    Servo motor = Servo();
-    ServoMode mode = NORMAL;
-
 public:
+    static const unsigned int MIN_VALUE = 1400;
+    static const unsigned int MAX_VALUE = 1600;
+
+    static const unsigned int MIN_RANGE = 1;
+    static const unsigned int MAX_RANGE = 100;
+
     ServoMotor(ServoMode mode = NORMAL) : mode(mode) {}
     ServoMotor(int pin, ServoMode mode = NORMAL) : mode(mode)
     {
         attach(pin);
     }
+
     void attach(int pin)
     {
         pin = pin;
         motor.attach(pin);
-        motor.writeMicroseconds(1500);
+        motor.writeMicroseconds(zero);
     }
-    void setSpeed(double speed_)
+    void setSpeed(double val)
     {
-        speed = constrain(mode == INVERTED ? -speed_ : speed_, -1, 1);
-        motor.writeMicroseconds(math::fMap(speed, -1, 1, 1430, 1570));
+        speed = constrain(mode == INVERTED ? -val : val, -1, 1);
+        motor.writeMicroseconds(math::fMap(speed, -1, 1, zero - range, zero + range));
     }
     double getSpeed()
     {
         return speed;
+    }
+    void setZeroValue(unsigned int val)
+    {
+        zero = val;
+    }
+    unsigned int getZeroValue()
+    {
+        return zero;
+    }
+    void setRange(unsigned int val)
+    {
+        range = val;
+    }
+    unsigned int getRange()
+    {
+        return range;
     }
     void setMode(ServoMode mode_)
     {
@@ -51,46 +69,26 @@ public:
     {
         return mode;
     }
+
+private:
+    int pin;
+    unsigned int zero = 1500;
+    unsigned int range = 70;
+    double speed = 0;
+    Servo motor = Servo();
+    ServoMode mode = NORMAL;
 };
 
 class MovementInterface
 {
-private:
-    double movementSpeed = 0.35;
-    double linePosition = 0;
-
-    double PIDInput = 0;
-    double PIDOutput = 0;
-    double PIDSetpoint = 0;
-
-    double Kp = 2.65;
-    double Ki = 0;
-    double Kd = 0.13;
-
-    PID pidController = PID(&PIDInput, &PIDOutput, &PIDSetpoint, Kp, Ki, Kd, DIRECT);
-    ServoMotor leftMotor = ServoMotor(INVERTED);
-    ServoMotor rightMotor = ServoMotor();
-
-    double calcLeftMotorSpeed(double x, double v)
-    {
-        if (x >= 0)
-            return -pow(x, 1) * (1 + v) + v;
-        else
-            return pow(-x, 1) * (1 - v) + v;
-    }
-    double calcRightMotorSpeed(double x, double v)
-    {
-        if (x >= 0)
-            return pow(x, 1) * (1 - v) + v;
-        else
-            return -pow(-x, 1) * (1 + v) + v;
-    }
-
 public:
     void init()
     {
         pidController.SetOutputLimits(-1, 1);
         pidController.SetMode(AUTOMATIC);
+
+        leftMotor.setZeroValue(1500);
+        rightMotor.setZeroValue(1504);
     }
 
     void attachLeftMotor(int pin)
@@ -116,18 +114,19 @@ public:
         leftMotor.setSpeed(calcLeftMotorSpeed(PIDOutput, movementSpeed));
         rightMotor.setSpeed(calcRightMotorSpeed(PIDOutput, movementSpeed));
     }
+
+    ServoMotor &getLeftMotor()
+    {
+        return leftMotor;
+    }
+    ServoMotor &getRightMotor()
+    {
+        return rightMotor;
+    }
+
     void setLinePosition(double position)
     {
         linePosition = position;
-    }
-
-    ServoMotor *getLeftMotor()
-    {
-        return &leftMotor;
-    }
-    ServoMotor *getRightMotor()
-    {
-        return &rightMotor;
     }
 
     void setSpeed(double speed)
@@ -165,6 +164,118 @@ public:
     double getKd()
     {
         return Kd;
+    }
+
+    void moveForward(double distance)
+    {
+        double distanceTravelled = 0;
+        double deltaTime = 0, lastTime = micros();
+        leftMotor.setSpeed(movementSpeed);
+        rightMotor.setSpeed(movementSpeed);
+        while (distanceTravelled < distance)
+        {
+            distanceTravelled += ga.getAcceleration().x * MATH_g * deltaTime;
+            lastTime = micros();
+
+        }
+        stop();
+    }
+    void moveBackwards(double distance)
+    {
+        leftMotor.setSpeed(-movementSpeed);
+        rightMotor.setSpeed(-movementSpeed);
+        
+        stop();
+    }
+    void turnAngle(float angle)
+    {
+        unsigned long startTime = millis();
+        leftMotor.setSpeed(0.7 * math::sign(angle));
+        rightMotor.setSpeed(0.7 * math::sign(angle));
+        while (millis() - startTime < abs(angle) * TURN_SPEED)
+            ;
+        stop();
+    }
+    void turnGreenSX()
+    {
+        stop();
+        moveForward(1250);
+        turnAngle(45);
+        // if (lastGreenSX)
+        // {
+        //     turnAngle(15);
+        //     moveForward(1000);
+        //     reset();
+        // }
+        // else
+        // {
+        //     moveForward(300);
+        //     setVelocity(17);
+        //     setTurnVelocity(35);
+        //     setOffset(-25);
+        // }
+        // lastGreenSX = !lastGreenSX;
+        // lastGreenTime = millis();
+    }
+    void turnGreenDX()
+    {
+        stop();
+        moveForward(1250);
+        turnAngle(-45);
+        // if (lastGreenDX)
+        // {
+        //     turnAngle(-15);
+        //     moveForward(1250);
+        //     reset();
+        // }
+        // else
+        // {
+        //     moveForward(300);
+        //     setVelocity(17);
+        //     setTurnVelocity(35);
+        //     setOffset(20);
+        // }
+        // lastGreenDX = !lastGreenDX;
+        // lastGreenTime = millis();
+    }
+    void turnGreenBoth()
+    {
+        stop();
+        turnAngle(180);
+        moveBackwards(300);
+    }
+
+private:
+    double movementSpeed = 0.50;
+    double linePosition = 0;
+
+    double PIDInput = 0;
+    double PIDOutput = 0;
+    double PIDSetpoint = 0;
+
+    double Kp = 2.650;
+    double Ki = 2.000;
+    double Kd = 0.350;
+
+    PID pidController = PID(&PIDInput, &PIDOutput, &PIDSetpoint, Kp, Ki, Kd, DIRECT);
+    ServoMotor leftMotor = ServoMotor(INVERTED);
+    ServoMotor rightMotor = ServoMotor();
+
+    GyroscopeAccelerometer ga = GyroscopeAccelerometer();
+
+    double calcLeftMotorSpeed(double x, double v)
+    {
+        if (x >= 0)
+            return -pow(x, 1) * (1 + v) + v;
+        else
+            return pow(-x, 1) * (1 - v) + v;
+    }
+    double calcRightMotorSpeed(double x, double v)
+    {
+        if (x >= 0)
+            return pow(x, 1) * (1 - v) + v;
+        else
+            return -pow(-x, 1) * (1 + v) + v;
     }
 };
 

@@ -32,6 +32,10 @@ public:
         for (int i = 0; i < length; i++)
             data[i] = fill;
     }
+    ~Array()
+    {
+        delete data;
+    }
 
     int size()
     {
@@ -59,4 +63,49 @@ public:
         data[length - 1] = item;
         return *this;
     }
+};
+
+template <class T>
+class Queue
+{
+private:
+	int length;
+	T *data;
+
+public:
+	Queue() 
+	{
+		length = 0;
+		data = new T[length];
+	}
+	Queue(int size) : length(size)
+	{
+		data = new T[length];
+	}
+
+	int size()
+	{
+		return length;
+	}
+	void put(T element)
+	{
+		T *temp = data;
+		data = new T[++length];
+		for (int i = 0; i < length - 1; i++)
+		{
+			data[i] = temp[i];
+		}
+		data[length - 1] = element;
+		return *this;
+	}
+	T get()
+	{
+		T *temp = data;
+		data = new T[--length];
+		for (int i = 0; i < length; i++)
+		{
+			data[i] = temp[i + 1];
+		}
+		return temp[0];
+	}
 };

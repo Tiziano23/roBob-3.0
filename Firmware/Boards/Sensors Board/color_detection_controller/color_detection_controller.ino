@@ -11,8 +11,8 @@
 #define GREEN_SX 2  //BIT_1
 #define GREEN_DX 3  //BIT_2
 #define ALUMINIUM 4 //BIT_3
-#define BIT_4 5     //BIT_4
-#define BIT_5 6     //BIT_5
+#define CONFIG_TX 5 //BIT_4
+#define CONFIG_RX 6 //BIT_5
 //--------------------------------//
 
 extern HardwareSerial Serial;
@@ -24,17 +24,21 @@ void setup()
     pinMode(GREEN_SX, OUTPUT);
     pinMode(GREEN_DX, OUTPUT);
     pinMode(ALUMINIUM, OUTPUT);
+
     apds_c.init();
+
+    digitalWrite(GREEN_SX, LOW);
+    digitalWrite(GREEN_DX, LOW);
+    digitalWrite(ALUMINIUM, LOW);
 }
 
 void loop()
 {
     apds_c.measure();
-    Serial.println(apds_c.checkGreenSx());
 
-    // digitalWrite(GREEN_SX, apds_c.checkGreenSx());
-    // digitalWrite(GREEN_DX, apds_c.checkGreenDx());
-    // digitalWrite(ALUMINIUM, apds_c.checkAluminium());
+    digitalWrite(GREEN_SX, apds_c.checkGreenSx());
+    digitalWrite(GREEN_DX, apds_c.checkGreenDx());
+    digitalWrite(ALUMINIUM, apds_c.checkAluminium());
 }
 
 // void calibrate_ISR()

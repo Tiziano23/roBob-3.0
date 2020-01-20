@@ -1,0 +1,29 @@
+Left sensor:
+    - Green (Lucido) :
+        - R: 30
+        - G: 72
+        - B: 75
+        - A: 179
+    - Green (Diffuso) :
+        - R: 30
+        - G: 68
+        - B: 60 
+        - A: 179
+
+    - White:
+        - R: 181
+        - G: 263
+        - B: 361
+        - A: 801
+
+    - Black:
+        - R: 16
+        - G: 25
+        - B: 33
+        - A: 76
+    
+    - Aluminum:
+        - R: > 230 (?)
+        - G: > 300 (?)
+        - B: > 400 (?)
+        - A: > 1000

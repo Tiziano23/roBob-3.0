@@ -43,12 +43,12 @@
 #define LINE 0x00
 #define COLOR 0x01
 //------ Functions ---------------//
-#define CAL_IR 0x00
-#define TOGGLE_LEFT_COLOR 0x01
-#define TOGGLE_RIGHT_COLOR 0x02
-#define CAL_COLOR 0x03
-#define CAL_COLOR_ABORT 0x04
-//-------------------------------//
+#define CAL_LINE 0x00
+#define CAL_COLOR 0x01
+#define CAL_COLOR_ABORT 0x02
+#define TOGGLE_LEFT_COLOR 0x03
+#define TOGGLE_RIGHT_COLOR 0x04
+//--------------------------------//
 
 // EEPROM Addresses --------------//
 //--------------------------------//
@@ -56,7 +56,7 @@
 #include "devices.h"
 #include "gui_manager.h"
 #include "movement_interface.h"
-#include "spi_interface_master.h"
+#include "libraries/spi/spi_interface_master.h"
 
 extern HardwareSerial Serial;
 
@@ -72,12 +72,19 @@ Keyboard keyboard(KB_BTN_LEFT, KB_BTN_CENTER, KB_BTN_RIGHT, KB_CONNECTED);
 
 MainMenu mainMenu("main-menu");
 
-ListMenu testing("testing");
+// main-menu
 ListMenu calibration("calibration");
 ListMenu settings("settings");
 
-ListMenu ledSettings("led-settings");
-ListMenu pidSettings("pid-settings");
+// main-menu --> settings
+ListMenu testing("settings:system-test");
+ListMenu servoSettings("settings:servo-settings");
+ListMenu ledSettings("settings:led-settings");
+ListMenu pidSettings("settings:pid-settings");
+
+// main-menu --> settings --> servoSettings
+ListMenu leftServoSettings("settings:servo-settings:left-servo");
+ListMenu rightServoSettings("settings:servo-settings:right-servo");
 
 Gui gui;
 MovementInterface movement;
@@ -105,22 +112,19 @@ void setup()
     mainMenu.addItem(MenuItem("Start", icons::start, []() { followLine(); }));
     mainMenu.addItem(MenuItem("Calib", icons::sliders, []() { gui.setActiveMenu("calibration"); }));
     mainMenu.addItem(MenuItem("Setup", icons::gear, []() { gui.setActiveMenu("settings"); }));
-    gui.addMenu(&mainMenu);
 
     calibration.addItem(MenuItem("Back", []() { gui.setActiveMenu("main-menu"); }));
     calibration.addItem(MenuItem("Line", []() {
-        spi.execAction(CAL_IR);
-        gui.drawLoadingBar("Calibrating", 5000);
+        spi.execAction(CAL_LINE);
+        gui.drawLoadingBar("Calibrating", 10000);
     }));
     calibration.addItem(MenuItem("Color", []() { gui.colorCalibrationWizard(spi, keyboard); }));
-    gui.addMenu(&calibration);
 
     settings.addItem(MenuItem("Back", []() { gui.setActiveMenu("main-menu"); }));
-    // settings.addItem(MenuItem("Enable color", []() { spi.execAction(ENABLE_COLOR); }));
-    settings.addItem(MenuItem("System Test", []() { gui.setActiveMenu("testing"); }));
-    settings.addItem(MenuItem("PID Settings", []() { gui.setActiveMenu("pid-settings"); }));
-    settings.addItem(MenuItem("RGB LED Settings", []() { gui.setActiveMenu("led-settings"); }));
-    gui.addMenu(&settings);
+    settings.addItem(MenuItem("System Test", []() { gui.setActiveMenu("settings:system-test"); }));
+    settings.addItem(MenuItem("Servo Settings", []() { gui.setActiveMenu("settings:servo-settings"); }));
+    settings.addItem(MenuItem("PID Settings", []() { gui.setActiveMenu("settings:pid-settings"); }));
+    settings.addItem(MenuItem("LED Settings", []() { gui.setActiveMenu("settings:led-settings"); }));
 
     pidSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
     pidSettings.addItem(MenuItem("Set speed", []() {
@@ -135,7 +139,6 @@ void setup()
     pidSettings.addItem(MenuItem("Set Kd", []() {
         movement.setKd(gui.numberDialog(movement.getKd(), 0.0, 10.0, 0.001, keyboard, Real3));
     }));
-    gui.addMenu(&pidSettings);
 
     ledSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
     ledSettings.addItem(MenuItem("Set Hue", []() {
@@ -147,7 +150,6 @@ void setup()
     ledSettings.addItem(MenuItem("Set Brightness", []() {
         led.setV(gui.numberDialog<float>(led.getColor().getV(), 0, 1, 0.01, keyboard, Real2, [](float v) { led.setV(v); }));
     }));
-    gui.addMenu(&ledSettings);
 
     testing.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
     testing.addItem(MenuItem("Color", []() {
@@ -163,14 +165,53 @@ void setup()
         }
     }));
     testing.addItem(MenuItem("Left Servo", []() {
-        gui.numberDialog<float>(0, -1, 1, 0.01, keyboard, Percentual, [](float n) { movement.getLeftMotor()->setSpeed(n); });
-        movement.getLeftMotor()->setSpeed(0);
+        gui.numberDialog<float>(0, -1, 1, 0.01, keyboard, Percentual, [](float n) { movement.getLeftMotor().setSpeed(n); });
+        movement.getLeftMotor().setSpeed(0);
     }));
     testing.addItem(MenuItem("Right Servo", []() {
-        gui.numberDialog<float>(0, -1, 1, 0.01, keyboard, Percentual, [](float n) { movement.getRightMotor()->setSpeed(n); });
-        movement.getRightMotor()->setSpeed(0);
+        gui.numberDialog<float>(0, -1, 1, 0.01, keyboard, Percentual, [](float n) { movement.getRightMotor().setSpeed(n); });
+        movement.getRightMotor().setSpeed(0);
     }));
+
+    servoSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
+    servoSettings.addItem(MenuItem("Left Servo", []() { gui.setActiveMenu("settings:servo-settings:left-servo"); }));
+    servoSettings.addItem(MenuItem("Right Servo", []() { gui.setActiveMenu("settings:servo-settings:right-servo"); }));
+
+    leftServoSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings:servo-settings"); }));
+    leftServoSettings.addItem(MenuItem("Zero", []() {
+        gui.numberDialog<unsigned int>(movement.getLeftMotor().getZeroValue(), ServoMotor::MIN_VALUE, ServoMotor::MAX_VALUE, 1, keyboard, Integer, [](unsigned int val) {
+            movement.getLeftMotor().setZeroValue(val);
+            movement.getLeftMotor().setSpeed(0);
+        });
+    }));
+    leftServoSettings.addItem(MenuItem("Range", []() {
+        gui.numberDialog<unsigned int>(movement.getLeftMotor().getRange(), ServoMotor::MIN_RANGE, ServoMotor::MAX_RANGE, 1, keyboard, Integer, [](unsigned int val) {
+            movement.getLeftMotor().setRange(val);
+        });
+    }));
+
+    rightServoSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings:servo-settings"); }));
+    rightServoSettings.addItem(MenuItem("Zero", []() {
+        gui.numberDialog<unsigned int>(movement.getRightMotor().getZeroValue(), ServoMotor::MIN_VALUE, ServoMotor::MAX_VALUE, 1, keyboard, Integer, [](unsigned int val) {
+            movement.getRightMotor().setZeroValue(val);
+            movement.getRightMotor().setSpeed(0);
+        });
+    }));
+    rightServoSettings.addItem(MenuItem("Range", []() {
+        gui.numberDialog<unsigned int>(movement.getRightMotor().getRange(), ServoMotor::MIN_RANGE, ServoMotor::MAX_RANGE, 1, keyboard, Integer, [](unsigned int val) {
+            movement.getRightMotor().setRange(val);
+        });
+    }));
+    
+    gui.addMenu(&mainMenu);
+    gui.addMenu(&calibration);
+    gui.addMenu(&settings);
+    gui.addMenu(&pidSettings);
+    gui.addMenu(&ledSettings);
     gui.addMenu(&testing);
+    gui.addMenu(&servoSettings);
+    gui.addMenu(&leftServoSettings);
+    gui.addMenu(&rightServoSettings);
 
     gui.setActiveMenu("main-menu");
     gui.init();
@@ -179,7 +220,6 @@ void setup()
 void loop()
 {
     keyboard.update();
-
     if (!keyboard.isConnected())
         followLine();
 
@@ -201,20 +241,22 @@ void followLine()
         keyboard.update();
 
         double line = spi.requestData<double>(LINE);
-        movement.setLinePosition(line / 3500.0 - 1.0);
+        movement.setLinePosition(line);
         movement.followLine();
 
         byte color = spi.requestData<byte>(COLOR);
-        byte color_sx = color & B01;
+        byte color_sx = color & B1;
         byte color_dx = (color & B10) >> 1;
         byte aluminium = (color & B100) >> 2;
 
-        // if (color_sx)
-        // {
-        // }
-        // if (color_dx)
-        // {
-        // }
+        if (color_sx)
+        {
+
+        }
+        if (color_dx)
+        {
+            
+        }
 
         d.clearDisplay();
         d.setTextSize(2);

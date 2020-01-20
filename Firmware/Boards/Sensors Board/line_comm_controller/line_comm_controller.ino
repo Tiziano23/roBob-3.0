@@ -1,5 +1,5 @@
 // Communication pins -------------//
-#define GREEN_SX 0  //BIT_1
+#define GREEN_SX 2  //BIT_1
 #define GREEN_DX 3  //BIT_2
 #define ALUMINIUM 4 //BIT_3
 #define CONFIG_RX 5 //BIT_4
@@ -13,20 +13,20 @@
 // SPI Addresses -----------------//
 #define NONE 0x00
 //------ Data --------------------//
-#define LINE 0x00
-#define COLOR 0x01
+#define LINE_DATA 0x00
+#define COLOR_DATA 0x01
 //------ Functions ---------------//
-#define CAL_IR 0x00
-#define TOGGLE_LEFT_COLOR 0x01
-#define TOGGLE_RIGHT_COLOR 0x02
-#define CAL_COLOR 0x03
-#define CAL_COLOR_ABORT 0x04
+#define CAL_LINE 0x00
+#define CAL_COLOR 0x01
+#define CAL_COLOR_ABORT 0x02
+#define TOGGLE_LEFT_COLOR 0x03
+#define TOGGLE_RIGHT_COLOR 0x04
 //--------------------------------//
 
 #include <SoftwareSerial.h>
 
 #include "line_sensor_manager.h"
-#include "spi_interface_slave.h"
+#include "libraries/spi/spi_interface_slave.h"
 
 extern HardwareSerial Serial;
 
@@ -36,7 +36,7 @@ struct config
     bool color_dx;
 } cfg;
 
-int sensor_pins[8] = {A5, A4, A3, A2, A1, A0, 8, 9};
+const uint8_t sensor_pins[8] = {A5, A4, A3, A2, A1, A0, 8, 9};
 QTR_Controller qtr(sensor_pins, QTR_LED_PIN);
 SoftwareSerial configSerial(CONFIG_RX, CONFIG_TX);
 SPISlaveInterface spi;
@@ -44,7 +44,7 @@ SPISlaveInterface spi;
 void setup()
 {
     Serial.begin(115200);
-    configSerial.begin(115200);
+    // configSerial.begin(115200);
 
     pinMode(GREEN_SX, INPUT);
     pinMode(GREEN_DX, INPUT);
@@ -56,8 +56,12 @@ void setup()
     qtr.init();
     spi.init();
 
-    spi.setAction(CAL_IR, []() {
+    spi.setAction(CAL_LINE, []() {
         qtr.calibrate();
+    });
+    spi.setAction(CAL_COLOR, []() {
+    });
+    spi.setAction(CAL_COLOR_ABORT, []() {
     });
     spi.setAction(TOGGLE_LEFT_COLOR, []() {
         cfg.color_sx = !cfg.color_sx;
@@ -73,24 +77,23 @@ void setup()
             String("\"dx\":") + String(cfg.color_dx) +
             String("}"));
     });
-    spi.setAction(CAL_COLOR, []() {
-    });
-    spi.setAction(CAL_COLOR_ABORT, []() {
-    });
 }
 
 void loop()
 {
-    spi.setValue<double>(LINE, qtr.getLine());
-    spi.setValue<byte>(COLOR, encodeColorData());
+    while (spi.pendingActions() > 0)
+        spi.execAction();
+
+    spi.setValue<double>(LINE_DATA, qtr.getLine());
+    spi.setValue<byte>(COLOR_DATA, encodeColorData());
 }
 
 byte encodeColorData()
 {
     byte data;
-    data |= (digitalRead(GREEN_SX) & 1);
-    data |= (digitalRead(GREEN_DX) & 1) << 1;
-    data |= (digitalRead(ALUMINIUM) & 1) << 2;
+    data |= (digitalRead(GREEN_SX) & B1);
+    data |= (digitalRead(GREEN_DX) & B1) << 1;
+    data |= (digitalRead(ALUMINIUM) & B1) << 2;
     return data;
 }
 

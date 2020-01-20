@@ -7,6 +7,7 @@
 //--------------------------------//
 
 #include <SPI.h>
+#include "../utils.h"
 
 #define NONE 0x00
 #define SS_INT 2
@@ -20,6 +21,7 @@ private:
 	static const byte dataBufferSize = 128;
 	static const byte dataAddressOffset = startAddressOffset + actionBufferSize;
 
+	volatile Queue<byte> actionAddressQueue;
 	volatile byte currentByte = 0;
 	volatile void (*actionBuffer[actionBufferSize])();
 	volatile byte dataBuffer[dataBufferSize][4];
@@ -64,9 +66,17 @@ public:
 	{
 		actionBuffer[address] = function;
 	}
-	void execAction(byte address)
+	void registerActionExecution(byte address)
 	{
-		actionBuffer[address - actionAddressOffset]();
+		actionAddressQueue.put(address - actionAddressOffset);
+	}
+	int pendingActions()
+	{
+		return actionAddressQueue.size();
+	}
+	void execAction()
+	{
+		actionBuffer[actionAddressQueue.get()]();
 	}
 	void onTransmissionCompleted()
 	{
@@ -75,12 +85,18 @@ public:
 		{
 			SPDR = 0;
 			currentByte = 0;
-		} else {
-			if (address < actionAddressOffset + actionBufferSize) execAction(address);
-			else if (address < dataAddressOffset + dataBufferSize) {
+		}
+		else
+		{
+			if (address < actionAddressOffset + actionBufferSize)
+				registerActionExecution(address);
+			else if (address < dataAddressOffset + dataBufferSize)
+			{
 				SPDR = getByte(address, currentByte);
 				currentByte++;
-			} else {
+			}
+			else
+			{
 				SPDR = 0;
 				currentByte = 0;
 			}

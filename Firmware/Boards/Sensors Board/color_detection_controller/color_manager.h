@@ -3,9 +3,11 @@
 #include <Wire.h>
 #include <SparkFun_APDS9960.h>
 
-#include "neural_network.h"
+// #include "neural_network.h"
 
-NeuralNetwork colorPredictor;
+extern HardwareSerial Serial;
+
+// NeuralNetwork colorPredictor;
 SparkFun_APDS9960 apds;
 
 enum SensorReading
@@ -16,12 +18,20 @@ enum SensorReading
     ALUMINIUM
 };
 
+struct SensorData
+{
+    uint16_t r;
+    uint16_t g;
+    uint16_t b;
+    uint16_t a;
+};
+
 class ColorSensor
 {
 private:
     int ledPin;
     int selectPin;
-    double values[4];
+    SensorData data;
 
     void select()
     {
@@ -54,46 +64,77 @@ public:
         uint16_t value;
         select();
         apds.readRedLight(value);
-        values[0] = value;
+        data.r = value;
         apds.readGreenLight(value);
-        values[1] = value;
+        data.g = value;
         apds.readBlueLight(value);
-        values[2] = value;
+        data.b = value;
         apds.readAmbientLight(value);
-        values[3] = value;
+        data.a = value;
         deselect();
     }
-    SensorReading predictColor()
+    SensorData getReadings()
     {
-        measure();
-        double *results = colorPredictor.predict(values);
-        int maxIndex = 0;
-        int maxValue = 0;
-        for (int i = 0; i < 4; i++)
-        {
-            if (results[i] > maxValue)
-            {
-                maxValue = results[i];
-                maxIndex = i;
-            }
-        }
-        switch (maxIndex)
-        {
-        case 0:
-            return GREEN;
-            break;
-        case 1:
-            return BLACK;
-            break;
-        case 2:
-            return WHITE;
-            break;
-        case 3:
-            return ALUMINIUM;
-            break;
-        }
+        return data;
     }
-    
+    SensorReading getDiscreteColor()
+    {
+        if (
+            (150 < data.r && data.r < 200) &&
+            (220 < data.g && data.g < 300) &&
+            (340 < data.b && data.b < 400) &&
+            (700 < data.a && data.a < 1000))
+            return WHITE;
+        if (
+            (20 < data.r && data.r < 40) &&
+            (50 < data.g && data.g < 100) &&
+            (50 < data.b && data.b < 90) &&
+            (100 < data.a && data.a < 225))
+            return GREEN;
+        if (
+            (5 < data.r && data.r < 25) &&
+            (10 < data.g && data.g < 45) &&
+            (15 < data.b && data.b < 55) &&
+            (50 < data.a && data.a < 150))
+            return BLACK;
+        if (
+            data.r > 230 &&
+            data.g > 300 &&
+            data.b > 400 &&
+            data.a > 1000)
+            return ALUMINIUM;
+    }
+
+    // SensorReading predictColor()
+    // {
+    //     measure();
+    //     double *results = colorPredictor.predict(values);
+    //     int maxIndex = 0;
+    //     int maxValue = 0;
+    //     for (int i = 0; i < 4; i++)
+    //     {
+    //         if (results[i] > maxValue)
+    //         {
+    //             maxValue = results[i];
+    //             maxIndex = i;
+    //         }
+    //     }
+    //     switch (maxIndex)
+    //     {
+    //     case 0:
+    //         return GREEN;
+    //         break;
+    //     case 1:
+    //         return BLACK;
+    //         break;
+    //     case 2:
+    //         return WHITE;
+    //         break;
+    //     case 3:
+    //         return ALUMINIUM;
+    //         break;
+    //     }
+    // }
 };
 
 class ColorManager
@@ -110,7 +151,7 @@ public:
     }
     void init()
     {
-        colorPredictor.init();
+        // colorPredictor.init();
         sxSensor.init();
         dxSensor.init();
     }
@@ -121,14 +162,33 @@ public:
     }
     bool checkGreenSx()
     {
-        return sxSensor.predictColor() == GREEN;
+        return sxSensor.getDiscreteColor() == GREEN;
+        // return sxSensor.predictColor() == GREEN;
     }
     bool checkGreenDx()
     {
-        return dxSensor.predictColor() == GREEN;
+        return dxSensor.getDiscreteColor() == GREEN;
+        // return dxSensor.predictColor() == GREEN;
     }
     bool checkAluminium()
     {
-        return sxSensor.predictColor() == ALUMINIUM || dxSensor.predictColor() == ALUMINIUM;
+        return sxSensor.getDiscreteColor() == ALUMINIUM || dxSensor.getDiscreteColor() == ALUMINIUM;
+        // return sxSensor.predictColor() == ALUMINIUM || dxSensor.predictColor() == ALUMINIUM;
+    }
+
+    void printValuesSx()
+    {
+        Serial.print("Left Sensor: { ");
+        Serial.print("r: ");
+        Serial.print(sxSensor.getReadings().r);
+        Serial.print(", g: ");
+        Serial.print(sxSensor.getReadings().g);
+        Serial.print(", b: ");
+        Serial.print(sxSensor.getReadings().b);
+        Serial.print(", a: ");
+        Serial.print(sxSensor.getReadings().a);
+        Serial.print(", green: ");
+        Serial.print(checkGreenSx());
+        Serial.println(" }");
     }
 };

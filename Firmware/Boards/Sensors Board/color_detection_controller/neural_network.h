@@ -1,13 +1,13 @@
 #pragma once
-#include "libraries/math.h"
+#include "libraries/math_nn.h"
 using namespace math;
 
 struct NetworkState
 {
-    double hB[2];
-    double hW[8];
+    double hB[4];
+    double hW[16];
     double oB[4];
-    double oW[8];
+    double oW[16];
 };
 
 #include "assets/state.h"
@@ -46,9 +46,9 @@ public:
     void loadState(NetworkState savedState)
     {
         hB = math::Vector(4, savedState.hB);
-        hW = math::Matrix(2, 4, savedState.hW);
-        oB = math::Vector(2, savedState.oB);
-        oW = math::Matrix(4, 2, savedState.oW);
+        hW = math::Matrix(4, 4, savedState.hW);
+        oB = math::Vector(4, savedState.oB);
+        oW = math::Matrix(4, 4, savedState.oW);
     }
 
     double *predict(double inputs[])
