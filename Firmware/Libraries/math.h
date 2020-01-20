@@ -1,6 +1,8 @@
 #pragma once
 
-#define MATH_g 9.81
+#define MATH_g 9.81 //9.80665
+#define MATH_toDegrees 180/PI
+#define MATH_toRadians PI/180
 
 namespace math
 {
@@ -20,37 +22,53 @@ public:
     }
     Vector3f(double x, double y, double z) : x(x), y(y), z(z) {}
 
-    Vector3f operator+(Vector3f v, const Vector3f &w)
+    Vector3f operator+(const Vector3f &v)
     {
-        Vector3f r;
-        r.x = x + v.x;
-        r.y = y + v.y;
-        r.z = z + v.z;
-        return r;
+        Vector3f w;
+        w.x = x + v.x;
+        w.y = y + v.y;
+        w.z = z + v.z;
+        return w;
     }
-    Vector3f operator-(Vector3f v, const Vector3f &w)
+    Vector3f operator-(const Vector3f &v)
     {
-        Vector3f r;
-        r.x = x - v.x;
-        r.y = y - v.y;
-        r.z = z - v.z;
-        return r;
+        Vector3f w;
+        w.x = x - v.x;
+        w.y = y - v.y;
+        w.z = z - v.z;
+        return w;
     }
-    Vector3f operator*(Vector3f v, const double &scalar)
+    Vector3f operator*(const double &scalar)
     {
-        Vector3f r;
-        r.x = x * scalar;
-        r.y = y * scalar;
-        r.z = z * scalar;
-        return r;
+        Vector3f w;
+        w.x = x * scalar;
+        w.y = y * scalar;
+        w.z = z * scalar;
+        return w;
     }
-    Vector3f operator*(Vector3f v, const Vector3f &w)
+    Vector3f operator*(const Vector3f &v)
     {
-        Vector3f r;
-        r.x = x * v.x;
-        r.y = y * v.y;
-        r.z = z * v.z;
-        return r;
+        Vector3f w;
+        w.x = x * v.x;
+        w.y = y * v.y;
+        w.z = z * v.z;
+        return w;
+    }
+    Vector3f operator/(const double &scalar)
+    {
+        Vector3f w;
+        w.x = x / scalar;
+        w.y = y / scalar;
+        w.z = z / scalar;
+        return w;
+    }
+    Vector3f operator/(const Vector3f &v)
+    {
+        Vector3f w;
+        w.x = x / v.x;
+        w.y = y / v.y;
+        w.z = z / v.z;
+        return w;
     }
 
     Vector3f &operator+=(const Vector3f &v)
@@ -81,10 +99,29 @@ public:
         z *= v.z;
         return *this;
     }
+    Vector3f &operator/=(const double scalar)
+    {
+        x /= scalar;
+        y /= scalar;
+        z /= scalar;
+        return *this;
+    }
+    Vector3f &operator/=(const Vector3f &v)
+    {
+        x /= v.x;
+        y /= v.y;
+        z /= v.z;
+        return *this;
+    }
 
     double dot(Vector3f &v)
     {
         return (x * v.x) + (y * v.y) + (z * v.z);
+    }
+
+    double xyDist()
+    {
+        return sqrt(pow(x, 2) + pow(y,2));
     }
 };
 

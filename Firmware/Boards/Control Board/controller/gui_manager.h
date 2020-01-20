@@ -4,6 +4,7 @@
 #include <Adafruit_SSD1306.h>
 
 #include "libraries/math.h"
+#include "libraries/utils.h"
 #include "libraries/spi/spi_interface_master.h"
 
 #include "assets/gui_icons.h"
@@ -78,7 +79,7 @@ public:
 
 private:
     char *label;
-    bool enabled;
+    bool enabled = true;
     void_function action;
     uint8_t *icon = icons::null;
 };

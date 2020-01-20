@@ -4,6 +4,7 @@
 #include <MPU6050.h>
 
 #include "libraries/math.h"
+#include "libraries/utils.h"
 
 class Color
 {
@@ -248,16 +249,28 @@ public:
         Wire.begin();
         mpu6050.initialize();
         // if (!mpu6050.testConnection()) error;
+        calibrate();
+    }
+
+    void calibrate()
+    {
+        mpu6050.CalibrateAccel();
+        mpu6050.CalibrateGyro();
     }
 
     void update()
     {
-        int16_t xVal, yVal, zVal;
-        mpu6050.getRotation(&xVal, &yVal, &zVal);
-        rotationEuler += math::Vector3f(xVal, yVal, zVal);
+        deltaTime = (double)(millis() - lastUpdate) / 1000;
+        lastUpdate = millis();
 
-        mpu6050.getAcceleration(&xVal, &yVal, &zVal);
-        acceleation = math::Vector3f(xVal, yVal, zVal);
+        gyroscope += getSensorRotationVelocity() * deltaTime;
+        acceleation = getSensorAcceleration();
+        rotation = calcRotation();
+    }
+
+    math::Vector3f getRotation()
+    {
+        return rotation;
     }
 
     math::Vector3f getAcceleration()
@@ -266,10 +279,53 @@ public:
     }
 
 private:
-    math::Vector3f rotationEuler;
+    unsigned long long lastUpdate;
+    double deltaTime = 0;
+
+    math::Vector3f rotation;
+
+    math::Vector3f gyroscope;
     math::Vector3f acceleation;
 
     MPU6050 mpu6050;
+
+    math::Vector3f calcRotation()
+    {
+        math::Vector3f gyroAngle(gyroscope.x, gyroscope.y, gyroscope.z);
+        math::Vector3f accelAngle;
+        accelAngle.x = atan(+acceleation.x / sqrt(pow(acceleation.x, 2) + pow(acceleation.z, 2)));
+        accelAngle.y = atan(-acceleation.x / sqrt(pow(acceleation.y, 2) + pow(acceleation.z, 2)));
+        accelAngle.z = atan(+acceleation.z / sqrt(pow(acceleation.x, 2) + pow(acceleation.y, 2)));
+        return gyroAngle * 0.96 + accelAngle * 0.04;
+    }
+
+    math::Vector3f getRawSensorRotationVelocity()
+    {
+        int16_t xVal, yVal, zVal;
+        mpu6050.getRotation(&xVal, &yVal, &zVal);
+        return math::Vector3f(xVal, yVal, zVal) / 131 * MATH_toRadians;
+    }
+    math::Vector3f getSensorRotationVelocity()
+    {
+        int16_t xVal, yVal, zVal;
+        mpu6050.getRotation(&xVal, &yVal, &zVal);
+        return math::Vector3f(xVal, yVal, zVal) / 131 * MATH_toRadians;
+    }
+    math::Vector3f getRawSensorAcceleration()
+    {
+        int16_t xVal, yVal, zVal;
+        mpu6050.getAcceleration(&xVal, &yVal, &zVal);
+        return math::Vector3f(xVal, yVal, zVal) / 16384 * MATH_g;
+    }
+    math::Vector3f getSensorAcceleration()
+    {
+        int16_t xVal, yVal, zVal;
+        mpu6050.getAcceleration(&xVal, &yVal, &zVal);
+
+        math::Vector3f g = math::Vector3f(0, 0, 1);
+        math::Vector3f a = (math::Vector3f(xVal, yVal, zVal) / 16384 - g) * MATH_g;
+        return a;
+    }
 };
 
 class SR_04

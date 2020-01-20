@@ -89,6 +89,7 @@ ListMenu rightServoSettings("settings:servo-settings:right-servo");
 Gui gui;
 MovementInterface movement;
 SPIMasterInterface spi;
+GyroscopeAccelerometer accelGyro;
 
 void setup()
 {
@@ -99,6 +100,7 @@ void setup()
     buzzer.init();
     keyboard.init();
     movement.init();
+    accelGyro.init();
 
     // US_N.init();
     // US_NW.init();
@@ -108,6 +110,7 @@ void setup()
 
     movement.attachLeftMotor(SERVO_LEFT);
     movement.attachRightMotor(SERVO_RIGHT);
+    movement.setGyroscopeAccelerometer(accelGyro);
 
     mainMenu.addItem(MenuItem("Start", icons::start, []() { followLine(); }));
     mainMenu.addItem(MenuItem("Calib", icons::sliders, []() { gui.setActiveMenu("calibration"); }));
@@ -153,7 +156,6 @@ void setup()
 
     testing.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
     testing.addItem(MenuItem("Color", []() {
-        keyboard.update();
         while (!keyboard.pressedOnce(MIDDLE))
         {
             keyboard.update();
@@ -162,6 +164,46 @@ void setup()
             byte color_dx = (colorData & B10) >> 1;
             byte aluminium = (colorData & B100) >> 2;
             gui.printColorData(color_sx, color_dx, aluminium);
+        }
+    }));
+    testing.addItem(MenuItem("Accelerometer", []() {
+        while (!keyboard.pressedOnce(MIDDLE))
+        {
+            keyboard.update();
+            accelGyro.update();
+            math::Vector3f accel = accelGyro.getAcceleration();
+            d.clearDisplay();
+            d.setTextSize(1);
+            d.setCursor(0, 0);
+            d.println("Accel: {");
+            d.print("x: ");
+            d.println(accel.x);
+            d.print("y: ");
+            d.println(accel.y);
+            d.print("z: ");
+            d.println(accel.z);
+            d.println(" }");
+            d.display();
+        }
+    }));
+    testing.addItem(MenuItem("Gyroscope", []() {
+        while (!keyboard.pressedOnce(MIDDLE))
+        {
+            keyboard.update();
+            accelGyro.update();
+            math::Vector3f rot = accelGyro.getRotation();
+            d.clearDisplay();
+            d.setTextSize(1);
+            d.setCursor(0, 0);
+            d.println("Gyro: {");
+            d.print("x: ");
+            d.println(rot.x);
+            d.print("y: ");
+            d.println(rot.y);
+            d.print("z: ");
+            d.println(rot.z);
+            d.println(" }");
+            d.display();
         }
     }));
     testing.addItem(MenuItem("Left Servo", []() {
@@ -174,6 +216,7 @@ void setup()
     }));
 
     servoSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
+    servoSettings.addItem(MenuItem("Move Forward", []() { movement.moveForward(1); }));
     servoSettings.addItem(MenuItem("Left Servo", []() { gui.setActiveMenu("settings:servo-settings:left-servo"); }));
     servoSettings.addItem(MenuItem("Right Servo", []() { gui.setActiveMenu("settings:servo-settings:right-servo"); }));
 
@@ -202,7 +245,7 @@ void setup()
             movement.getRightMotor().setRange(val);
         });
     }));
-    
+
     gui.addMenu(&mainMenu);
     gui.addMenu(&calibration);
     gui.addMenu(&settings);
@@ -219,6 +262,7 @@ void setup()
 
 void loop()
 {
+    accelGyro.update();
     keyboard.update();
     if (!keyboard.isConnected())
         followLine();
@@ -226,7 +270,10 @@ void loop()
     if (keyboard.pressedRepeat(LEFT))
         gui.selectPreviousItem() ? buzzer.actionTone() : buzzer.disabledTone();
     else if (keyboard.pressedOnce(MIDDLE))
+    {
+        keyboard.update();
         gui.execSelectedItemAction() ? buzzer.actionTone() : buzzer.disabledTone();
+    }
     else if (keyboard.pressedRepeat(RIGHT))
         gui.selectNextItem() ? buzzer.actionTone() : buzzer.disabledTone();
 
@@ -251,11 +298,9 @@ void followLine()
 
         if (color_sx)
         {
-
         }
         if (color_dx)
         {
-            
         }
 
         d.clearDisplay();

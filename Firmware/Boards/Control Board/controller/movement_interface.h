@@ -91,6 +91,11 @@ public:
         rightMotor.setZeroValue(1504);
     }
 
+    void setGyroscopeAccelerometer(GyroscopeAccelerometer &gyroscope)
+    {
+        accelGyro = &gyroscope;
+    }
+
     void attachLeftMotor(int pin)
     {
         leftMotor.attach(pin);
@@ -98,21 +103,6 @@ public:
     void attachRightMotor(int pin)
     {
         rightMotor.attach(pin);
-    }
-
-    void stop()
-    {
-        pidController.SetMode(MANUAL);
-        leftMotor.setSpeed(0);
-        rightMotor.setSpeed(0);
-    }
-    void followLine()
-    {
-        pidController.SetMode(AUTOMATIC);
-        PIDInput = linePosition;
-        pidController.Compute();
-        leftMotor.setSpeed(calcLeftMotorSpeed(PIDOutput, movementSpeed));
-        rightMotor.setSpeed(calcRightMotorSpeed(PIDOutput, movementSpeed));
     }
 
     ServoMotor &getLeftMotor()
@@ -166,17 +156,43 @@ public:
         return Kd;
     }
 
+    void followLine()
+    {
+        pidController.SetMode(AUTOMATIC);
+        PIDInput = linePosition;
+        pidController.Compute();
+        leftMotor.setSpeed(calcLeftMotorSpeed(PIDOutput, movementSpeed));
+        rightMotor.setSpeed(calcRightMotorSpeed(PIDOutput, movementSpeed));
+    }
+
+    void stop()
+    {
+        pidController.SetMode(MANUAL);
+        leftMotor.setSpeed(0);
+        rightMotor.setSpeed(0);
+    }
     void moveForward(double distance)
     {
-        double distanceTravelled = 0;
-        double deltaTime = 0, lastTime = micros();
         leftMotor.setSpeed(movementSpeed);
         rightMotor.setSpeed(movementSpeed);
+
+        // double deltaTime = 0;
+        // unsigned long lastTime = millis();
+        double speed = 0, distanceTravelled = 0;
         while (distanceTravelled < distance)
         {
-            distanceTravelled += ga.getAcceleration().x * MATH_g * deltaTime;
-            lastTime = micros();
-
+            // deltaTime = (double)(millis() - lastTime) / 1000;
+            // lastTime = millis();
+            accelGyro->update();
+            speed += accelGyro->getAcceleration().xyDist();
+            distanceTravelled += speed;
+            d.clearDisplay();
+            d.setCursor(0, 0);
+            d.print("v: ");
+            d.println(speed);
+            d.print("s: ");
+            d.println(distanceTravelled);
+            d.display();
         }
         stop();
     }
@@ -184,7 +200,7 @@ public:
     {
         leftMotor.setSpeed(-movementSpeed);
         rightMotor.setSpeed(-movementSpeed);
-        
+
         stop();
     }
     void turnAngle(float angle)
@@ -260,8 +276,7 @@ private:
     PID pidController = PID(&PIDInput, &PIDOutput, &PIDSetpoint, Kp, Ki, Kd, DIRECT);
     ServoMotor leftMotor = ServoMotor(INVERTED);
     ServoMotor rightMotor = ServoMotor();
-
-    GyroscopeAccelerometer ga = GyroscopeAccelerometer();
+    GyroscopeAccelerometer *accelGyro;
 
     double calcLeftMotorSpeed(double x, double v)
     {

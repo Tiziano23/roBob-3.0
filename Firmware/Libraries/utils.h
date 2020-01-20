@@ -4,7 +4,8 @@ template <class A, class B>
 using function = A (*)(B);
 typedef void (*void_function)();
 
-void repeatFor(int duration, function<void, int> action)
+template <typename Function>
+void repeatFor(int duration, Function action)
 {
     unsigned long startTime = millis();
     while (millis() - startTime < duration)

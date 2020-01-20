@@ -8,10 +8,15 @@
                 "/opt/arduino-1.8.10/libraries/**",
                 "/home/tiziano/Arduino/libraries/**",
                 "/home/tiziano/.arduino15/packages/arduino/tools/**",
-                "/home/tiziano/.arduino15/packages/arduino/hardware/avr/1.8.2/**"
+                "/home/tiziano/.arduino15/packages/arduino/hardware/avr/1.8.2/**",
+                "C:\\Users\\Tiziano\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.1\\**",
+                "C:\\Users\\Tiziano\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\**",
+                "C:\\Users\\Tiziano\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.2\\**"
             ],
             "forcedInclude": [
-                "/home/tiziano/.arduino15/packages/arduino/hardware/avr/1.8.2/cores/arduino/Arduino.h"
+                "/home/tiziano/.arduino15/packages/arduino/hardware/avr/1.8.2/cores/arduino/Arduino.h",
+                "C:\\Users\\Tiziano\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.1\\cores\\arduino\\Arduino.h",
+                "C:\\Users\\Tiziano\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.2\\cores\\arduino\\Arduino.h"
             ],
             "defines": [
                 "ARDUINO=10810",
@@ -28,9 +33,9 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
+                "D:/Development/Robotics/Arduino/libraries/**",
                 "C:/Program Files (x86)/Arduino/hardware/**",
                 "C:/Program Files (x86)/Arduino/libraries/**",
-                "D:/Development/Robotics/Arduino/libraries/**",
                 "C:/Users/Tiziano/AppData/Local/Arduino15/packages/arduino/tools/**",
                 "C:/Users/Tiziano/AppData/Local/Arduino15/packages/arduino/hardware/avr/1.8.1/**"
             ],
