@@ -6,105 +6,17 @@
 #include "libraries/math.h"
 #include "libraries/utils.h"
 
-class Color
+enum KeyboardButton
 {
-public:
-    Color() {}
-    Color(int _r, int _g, int _b)
-    {
-        r = constrain(_r, 0, 255);
-        g = constrain(_g, 0, 255);
-        b = constrain(_b, 0, 255);
-        updateHSV();
-    }
-    Color(int _h, float _s, float _v)
-    {
-        h = constrain(_h, 0, 360);
-        s = constrain(_s, 0.0, 1.0);
-        v = constrain(_v, 0.0, 1.0);
-        updateRGB();
-    }
-
-    void setR(int _r)
-    {
-        r = _r;
-        updateHSV();
-    }
-    int getR() { return r; }
-    void setG(int _g)
-    {
-        g = _g;
-        updateHSV();
-    }
-    int getG() { return g; }
-    void setB(int _b)
-    {
-        b = _b;
-        updateHSV();
-    }
-    int getB() { return b; }
-
-    void setH(float _h)
-    {
-        h = _h;
-        updateRGB();
-    }
-    float getH() { return h; }
-    void setS(float _s)
-    {
-        s = _s;
-        updateRGB();
-    }
-    float getS() { return s; }
-    void setV(float _v)
-    {
-        v = _v;
-        updateRGB();
-    }
-    float getV() { return v; }
-
-private:
-    int r = 0;
-    int g = 0;
-    int b = 0;
-
-    int h = 0;
-    float s = 0;
-    float v = 0;
-
-    void updateRGB()
-    {
-        float kR = (5 + (float)h / 60.0);
-        float kG = (3 + (float)h / 60.0);
-        float kB = (1 + (float)h / 60.0);
-        kR = kR - ((int)kR / 6) * 6;
-        kG = kG - ((int)kG / 6) * 6;
-        kB = kB - ((int)kB / 6) * 6;
-        r = (v - v * s * max(min(min(kR, 4 - kR), 1), 0)) * 255;
-        g = (v - v * s * max(min(min(kG, 4 - kG), 1), 0)) * 255;
-        b = (v - v * s * max(min(min(kB, 4 - kB), 1), 0)) * 255;
-    }
-    void updateHSV()
-    {
-        v = max(max(r, g), b);
-        float n = v - min(min(r, g), b);
-        float k = 0;
-        if (v == r)
-            k = n ? (g - b / n) : 0;
-        else if (v == g)
-            k = n ? (2 + (b - r) / n) : 0;
-        else if (v == b)
-            k = n ? (4 + (r - g) / n) : 0;
-        h = 60 * (k < 0 ? k + 6 : k);
-        s = v ? 0 : n / v;
-    }
+    LEFT,
+    MIDDLE,
+    RIGHT
 };
-
 class Button
 {
 public:
     Button() {}
-    Button(int pin_) : pin(pin_) {}
+    Button(uint8_t pin) : pin(pin) {}
     void update()
     {
         if (!digitalRead(pin))
@@ -150,7 +62,7 @@ public:
     }
 
 private:
-    int pin;
+    uint8_t pin;
     bool once = false;
     bool repeat = false;
     bool pressed = false;
@@ -159,18 +71,11 @@ private:
     unsigned int repeatDeleay = 750; // ms
     unsigned int repeatPeriod = 25;  // ms
 };
-enum KeyboardButton
-{
-    LEFT,
-    MIDDLE,
-    RIGHT
-};
 class Keyboard
 {
 public:
-    Keyboard(int leftButtonPin, int centerButtonPin, int rightButtonPin, int connectedPin_)
+    Keyboard(uint8_t leftButtonPin, uint8_t centerButtonPin, uint8_t rightButtonPin, uint8_t connectedPin) : connectedPin(connectedPin)
     {
-        connectedPin = connectedPin_;
         buttons[0] = leftButtonPin;
         buttons[1] = centerButtonPin;
         buttons[2] = rightButtonPin;
@@ -209,13 +114,13 @@ public:
 
 private:
     Button buttons[3];
-    int connectedPin;
+    uint8_t connectedPin;
 };
 
 class Buzzer
 {
 public:
-    Buzzer(int pin_) : pin(pin_)
+    Buzzer(uint8_t pin_) : pin(pin_)
     {
     }
     void init()
@@ -236,7 +141,7 @@ public:
     }
 
 private:
-    int pin;
+    uint8_t pin;
 };
 
 class GyroscopeAccelerometer
@@ -254,8 +159,8 @@ public:
 
     void calibrate()
     {
-        mpu6050.CalibrateAccel();
-        mpu6050.CalibrateGyro();
+        // mpu6050.CalibrateAccel();
+        // mpu6050.CalibrateGyro();
     }
 
     void update()
@@ -331,7 +236,7 @@ private:
 class SR_04
 {
 public:
-    SR_04(int trig_pin, int echo_pin) : trig_pin(trig_pin), echo_pin(echo_pin) {}
+    SR_04(uint8_t trig_pin, uint8_t echo_pin) : trig_pin(trig_pin), echo_pin(echo_pin) {}
     void init()
     {
         pinMode(trig_pin, OUTPUT);
@@ -346,14 +251,14 @@ public:
     }
 
 private:
-    const unsigned int trig_pin;
-    const unsigned int echo_pin;
+    uint8_t trig_pin;
+    uint8_t echo_pin;
 };
 
 class RGBLed
 {
 public:
-    RGBLed(int r_pin, int g_pin, int b_pin) : r_pin(r_pin), g_pin(g_pin), b_pin(b_pin)
+    RGBLed(uint8_t r_pin, uint8_t g_pin, uint8_t b_pin) : r_pin(r_pin), g_pin(g_pin), b_pin(b_pin)
     {
     }
     void init()
@@ -365,32 +270,51 @@ public:
     }
     void setH(int h)
     {
-        color.setH(h);
+        color.setH((float)h / 360.);
         applyColor();
     }
-    void setS(float s)
+    void setS(double s)
     {
         color.setS(s);
         applyColor();
     }
-    void setV(float v)
+    void setV(double v)
     {
         color.setV(v);
         applyColor();
     }
-    void setColor(Color c) { color = c; }
+    void setHSV(int h, double s, double v)
+    {
+        color.setHSV((float)h / 360., s, v);
+        applyColor();
+    }
+    void setHSV(hsv data)
+    {
+        color.setHSV(data.h, data.s, data.v);
+        applyColor();
+    }
+    void setRGB(double r, double g, double b)
+    {
+        color.setRGB(r, g, b);
+        applyColor();
+    }
+    void setRGB(rgb data)
+    {
+        color.setRGB(data.r, data.g, data.b);
+        applyColor();
+    }
     Color &getColor() { return color; }
 
 private:
-    const unsigned int r_pin;
-    const unsigned int g_pin;
-    const unsigned int b_pin;
-    Color color;
+    uint8_t r_pin;
+    uint8_t g_pin;
+    uint8_t b_pin;
+    Color color = Color((hsv){0, 1, 0.1});
 
     void applyColor()
     {
-        analogWrite(r_pin, color.getR());
-        analogWrite(g_pin, color.getG());
-        analogWrite(b_pin, color.getB());
+        analogWrite(r_pin, color.getR() * 255);
+        analogWrite(g_pin, color.getG() * 255);
+        analogWrite(b_pin, color.getB() * 255);
     }
 };

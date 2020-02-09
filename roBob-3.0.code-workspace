@@ -11,6 +11,17 @@
 		{
 			"name": "Layouts",
 			"path": "Layouts"
+		},
+		{
+			"path": "Scripts"
 		}
-	]
+	],
+	"settings": {
+		"files.associations": {
+			"string": "cpp",
+			"*.tcc": "cpp",
+			"string_view": "cpp",
+			"typeinfo": "cpp"
+		}
+	}
 }

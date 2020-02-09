@@ -4,7 +4,7 @@
 #include <Adafruit_SSD1306.h>
 
 #include "libraries/math.h"
-#include "libraries/utils.h"
+#include "libraries/array.h"
 #include "libraries/spi/spi_interface_master.h"
 
 #include "assets/gui_icons.h"
@@ -106,7 +106,7 @@ public:
     }
     void addItem(MenuItem item)
     {
-        items.add(item);
+        items.push(item);
         length = (int)items.size();
     }
     MenuItem &getItem(int id)
@@ -311,7 +311,7 @@ public:
 
     void addMenu(Menu *menu)
     {
-        menus.add(menu);
+        menus.push(menu);
     }
 
     Menu *getActiveMenu()
@@ -417,7 +417,7 @@ public:
         drawActionCompleted();
         return newVal;
     }
-    void colorCalibrationWizard(SPIMasterInterface &spi, Keyboard &k)
+    void colorCalibrationGui(Keyboard& k, SPIMasterInterface &spi, uint8_t action, int calibrationTime)
     {
         d.clearDisplay();
         d.drawBitmap(8, 24, icons::cross_8, 8, 8, WHITE);
@@ -425,46 +425,15 @@ public:
         d.setTextSize(1);
         d.setCursor(0, 0);
         d.setTextWrap(true);
-        d.print("Put both sensors     above aluminium");
+        d.print("Place both sensors above the color");
         d.display();
-        if (waitForInput(k, false))
+        if (waitForInput(k))
         {
-            spi.execAction(CAL_COLOR);
-            drawLoadingBar("Calibrating", 500);
+            spi.execAction(action);
+            drawLoadingBar("Calibrating", calibrationTime);
         }
         else
-        {
-            spi.execAction(CAL_COLOR_ABORT);
             drawActionAborted();
-            return;
-        }
-        clearRect(0, 0, 128, 24);
-        d.print("Put both sensors on  a white surface");
-        d.display();
-        if (waitForInput(k, false))
-        {
-            spi.execAction(CAL_COLOR);
-            drawLoadingBar("Calibrating", 500);
-        }
-        else
-        {
-            spi.execAction(CAL_COLOR_ABORT);
-            drawActionAborted();
-            return;
-        }
-        clearRect(0, 0, 128, 24);
-        d.print("Put both sensors on  a black surface");
-        d.display();
-        if (waitForInput(k, false))
-        {
-            spi.execAction(CAL_COLOR);
-            drawLoadingBar("Calibrating", 500);
-        }
-        else
-        {
-            spi.execAction(CAL_COLOR_ABORT);
-            drawActionAborted();
-        }
     }
 
     void drawLoadingBar(const char message[], int duration)
@@ -521,10 +490,11 @@ private:
     Array<Menu *> menus;
     Menu *activeMenu;
 
-    bool waitForInput(Keyboard &k, bool animation)
+    bool waitForInput(Keyboard &k, bool animation = false)
     {
-        while (true)
+        while (!k.pressedOnce(MIDDLE))
         {
+            k.update();
             if (k.pressedOnce(LEFT))
             {
                 if (animation)

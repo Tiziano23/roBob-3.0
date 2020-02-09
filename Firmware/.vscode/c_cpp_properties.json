@@ -6,9 +6,7 @@
                 "${workspaceFolder}/**",
                 "/opt/arduino-1.8.10/hardware/**",
                 "/opt/arduino-1.8.10/libraries/**",
-                "/home/tiziano/Arduino/libraries/**",
-                "/home/tiziano/.arduino15/packages/arduino/tools/**",
-                "/home/tiziano/.arduino15/packages/arduino/hardware/avr/1.8.2/**"
+                "/home/tiziano/Arduino/libraries/**"
             ],
             "forcedInclude": [
                 "/home/tiziano/.arduino15/packages/arduino/hardware/avr/1.8.2/cores/arduino/Arduino.h"
@@ -16,8 +14,7 @@
             "defines": [
                 "ARDUINO=10810",
                 "F_CPU=16000000L",
-                "ARDUINO_ARCH_AVR",
-                "ARDUINO_AVR_MEGA2560"
+                "ARDUINO_ARCH_AVR"
             ],
             "compilerPath": "/usr/bin/g++",
             "cStandard": "c11",

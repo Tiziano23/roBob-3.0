@@ -14,10 +14,10 @@
 class SPIMasterInterface
 {
 private:
-    SPISettings slaveSettings = SPISettings(7500000, MSBFIRST, SPI_MODE0);
-    static const byte actionBufferOffset = 1;
-    static const byte dataBufferOffset = 17;
-    static const int TRANSFER_DELAY = 100; //µs
+    const SPISettings slaveSettings = SPISettings(7500000, MSBFIRST, SPI_MODE0);
+    static const uint8_t actionBufferOffset = 1;
+    static const uint8_t dataBufferOffset = 17;
+    static const int TRANSFER_DELAY = 50; //µs
 
 public:
     void init()
@@ -25,11 +25,11 @@ public:
         SPI.begin();
     }
     template <typename T>
-    T requestData(byte address)
+    T requestData(uint8_t address)
     {
         union U {
             T value;
-            byte bytes[sizeof(T)];
+            uint8_t bytes[sizeof(T)];
         } conversion;
 
         digitalWrite(SS, LOW);
@@ -37,7 +37,7 @@ public:
 
         SPI.transfer(dataBufferOffset + address);
         delayMicroseconds(TRANSFER_DELAY);
-        for (byte i = 0; i < sizeof(T) - 1; i++)
+        for (uint8_t i = 0; i < sizeof(T) - 1; i++)
         {
             conversion.bytes[i] = SPI.transfer(dataBufferOffset + address);
             delayMicroseconds(TRANSFER_DELAY);
@@ -50,7 +50,7 @@ public:
 
         return conversion.value;
     }
-    void execAction(byte address)
+    void execAction(uint8_t address)
     {
         digitalWrite(SS, LOW);
         SPI.beginTransaction(slaveSettings);

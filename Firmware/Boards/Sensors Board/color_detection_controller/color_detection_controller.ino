@@ -1,4 +1,15 @@
+#include <NeoSWSerial.h>
+#include "libraries/eepromManager.h"
+#include "libraries/utils.h"
+
 #include "color_manager.h"
+
+// Communication pins ------------//
+#define GREEN_SX 4
+#define GREEN_DX 5
+#define CONFIG_RX 3
+#define CONFIG_TX 2
+//--------------------------------//
 
 //------ Pins ------//
 #define DX_SEL 8
@@ -7,55 +18,137 @@
 #define SX_LED 13
 //------------------//
 
-//------ Communication pins ------//
-#define GREEN_SX 2  //BIT_1
-#define GREEN_DX 3  //BIT_2
-#define ALUMINIUM 4 //BIT_3
-#define CONFIG_TX 5 //BIT_4
-#define CONFIG_RX 6 //BIT_5
-//--------------------------------//
+// #define UPDATE_INTERVAL 1500
+// #define CLEAR_EEPROM
 
 extern HardwareSerial Serial;
-ColorManager apds_c(SX_SEL, SX_LED, DX_SEL, DX_LED);
+
+struct config
+{
+    bool aluminium = false;
+    bool leftColorEnabled = true;
+    bool rightColorEnabled = true;
+    bool calibrateWhite = false;
+    bool calibrateGreen = false;
+    bool calibrateBlack = false;
+    bool calibrateAluminium = false;
+    bool readyForNextRead = false;
+
+    hsv leftColorData = {0, 0, 0};
+    hsv rightColorData = {0, 0, 0};
+} cfg;
+
+bool update = false;
+
+ColorManager colorManager(SX_SEL, SX_LED, DX_SEL, DX_LED);
+NeoSWSerial configSerial(CONFIG_RX, CONFIG_TX);
 
 void setup()
 {
     Serial.begin(115200);
+    configSerial.begin(9600);
+
     pinMode(GREEN_SX, OUTPUT);
     pinMode(GREEN_DX, OUTPUT);
-    pinMode(ALUMINIUM, OUTPUT);
-
-    apds_c.init();
-
     digitalWrite(GREEN_SX, LOW);
     digitalWrite(GREEN_DX, LOW);
-    digitalWrite(ALUMINIUM, LOW);
+
+#ifdef CLEAR_EEPROM
+    eepromManager.clear();
+#endif
+    eepromManager.init();
+    colorManager.init();
+
+    digitalWrite(SX_LED, HIGH);
+    digitalWrite(DX_LED, HIGH);
+
+    printCalibrations();
 }
 
 void loop()
 {
-    apds_c.measure();
+    if (configSerial.available() >= sizeof(config))
+    {
+        readConfiguration();
+    }
 
-    digitalWrite(GREEN_SX, apds_c.checkGreenSx());
-    digitalWrite(GREEN_DX, apds_c.checkGreenDx());
-    digitalWrite(ALUMINIUM, apds_c.checkAluminium());
+    if (cfg.calibrateWhite)
+    {
+        cfg.calibrateWhite = false;
+        colorManager.calibrateWhite();
+    }
+    if (cfg.calibrateGreen)
+    {
+        cfg.calibrateGreen = false;
+        colorManager.calibrateGreen();
+    }
+    if (cfg.calibrateBlack)
+    {
+        cfg.calibrateBlack = false;
+        colorManager.calibrateBlack();
+    }
+    if (cfg.calibrateAluminium)
+    {
+        cfg.calibrateAluminium = false;
+        colorManager.calibrateAluminium();
+    }
+
+    colorManager.measure();
+    digitalWrite(GREEN_SX, colorManager.checkGreenSx());
+    digitalWrite(GREEN_DX, colorManager.checkGreenDx());
+    cfg.aluminium = colorManager.checkAluminium();
+
+    cfg.leftColorData = colorManager.getLeftSensor().getColor().getHSV();
+    cfg.rightColorData = colorManager.getLeftSensor().getColor().getHSV();
+
+    if (cfg.readyForNextRead)
+    {
+        cfg.readyForNextRead = false;
+        writeConfiguration();
+    }
 }
 
-// void calibrate_ISR()
-// {
-//     int pulse = 0;
-//     unsigned int startTime = micros();
-//     while (digitalRead(CAL_COLOR_PIN) && micros() - startTime < 100)
-//         ;
-//     pulse = micros() - startTime;
-//     if (pulse < 50)
-//     {
-//         calibrationStep++;
-//         calibrate = true;
-//     }
-//     else
-//     {
-//         calibrationStep = -1;
-//         calibrate = false;
-//     }
-// }
+void writeConfiguration()
+{
+    configSerial.write((uint8_t *)&cfg, sizeof(config));
+}
+void readConfiguration()
+{
+    configSerial.readBytes((uint8_t *)&cfg, sizeof(config));
+}
+
+void printConfiguration()
+{
+    Serial.println(F("Configuration: { "));
+    Serial.print(F("\twhite: "));
+    Serial.print(cfg.calibrateWhite);
+    Serial.print(F("\n\tgreen: "));
+    Serial.print(cfg.calibrateGreen);
+    Serial.print(F("\n\tblack: "));
+    Serial.print(cfg.calibrateBlack);
+    Serial.print(F("\n\taluminium: "));
+    Serial.print(cfg.calibrateAluminium);
+    Serial.println(F("\n}"));
+}
+void printCalibrations()
+{
+    Serial.println(F("Left sensor:"));
+    Serial.print("\t");
+    colorManager.getLeftSensor().printWhiteRef();
+    Serial.print("\t");
+    colorManager.getLeftSensor().printWhiteRng();
+    Serial.print("\t");
+    colorManager.getLeftSensor().printGreenRef();
+    Serial.print("\t");
+    colorManager.getLeftSensor().printGreenRng();
+    Serial.println(F("\nRight sensor:"));
+    Serial.print("\t");
+    colorManager.getRightSensor().printWhiteRef();
+    Serial.print("\t");
+    colorManager.getRightSensor().printWhiteRng();
+    Serial.print("\t");
+    colorManager.getRightSensor().printGreenRef();
+    Serial.print("\t");
+    colorManager.getRightSensor().printGreenRng();
+    Serial.println();
+}
