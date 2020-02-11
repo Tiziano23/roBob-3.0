@@ -5,9 +5,8 @@
 /*   52 -> SCK       13 -> SCK    */
 /*   53 -> SS        10 -> SS     */
 //--------------------------------//
-
 #include <SPI.h>
-#include "../utils.h"
+#include "../array.h"
 
 #define NONE 0x00
 #define SS_INT 2
@@ -15,16 +14,16 @@
 class SPISlaveInterface
 {
 private:
-	static const byte startAddressOffset = 1;
-	static const byte actionBufferSize = 16;
-	static const byte actionAddressOffset = startAddressOffset;
-	static const byte dataBufferSize = 128;
-	static const byte dataAddressOffset = startAddressOffset + actionBufferSize;
+	static const uint8_t startAddressOffset = 1;
+	static const uint8_t actionBufferSize = 16;
+	static const uint8_t actionAddressOffset = startAddressOffset;
+	static const uint8_t dataBufferSize = 128;
+	static const uint8_t dataAddressOffset = startAddressOffset + actionBufferSize;
 
-	volatile Queue<byte> actionAddressQueue;
-	volatile byte currentByte = 0;
+	Queue<uint8_t> actionAddressQueue;
+	volatile uint8_t currentByte = 0;
 	volatile void (*actionBuffer[actionBufferSize])();
-	volatile byte dataBuffer[dataBufferSize][4];
+	volatile uint8_t dataBuffer[dataBufferSize][4];
 
 	static void SPI_SS_FALLING()
 	{
@@ -39,17 +38,17 @@ public:
 		pinMode(SS, INPUT);
 		pinMode(MOSI, INPUT);
 		pinMode(MISO, OUTPUT);
-		pinMode(SS_INT, INPUT);
 
-		attachInterrupt(digitalPinToInterrupt(SS_INT), SPI_SS_FALLING, FALLING);
+		// pinMode(SS_INT, INPUT);
+		// attachInterrupt(digitalPinToInterrupt(SS_INT), SPI_SS_FALLING, FALLING);
 	}
 
 	template <typename T>
-	void setValue(byte address, T value)
+	void setValue(uint8_t address, T value)
 	{
 		union U {
 			T value;
-			byte bytes[sizeof(T)];
+			uint8_t bytes[sizeof(T)];
 		} conversion;
 		conversion.value = value;
 		for (int i = 0; i < sizeof(T); i++)
@@ -57,16 +56,16 @@ public:
 			dataBuffer[address][i] = conversion.bytes[i];
 		}
 	}
-	byte getByte(byte address, byte byteIndex)
+	uint8_t getByte(uint8_t address, uint8_t byteIndex)
 	{
 		return dataBuffer[address - dataAddressOffset][byteIndex];
 	}
 	template <typename Function>
-	void setAction(byte address, Function function)
+	void setAction(uint8_t address, Function function)
 	{
 		actionBuffer[address] = function;
 	}
-	void registerActionExecution(byte address)
+	void registerActionExecution(uint8_t address)
 	{
 		actionAddressQueue.put(address - actionAddressOffset);
 	}
@@ -80,7 +79,7 @@ public:
 	}
 	void onTransmissionCompleted()
 	{
-		byte address = SPDR;
+		uint8_t address = SPDR;
 		if (address == NONE)
 		{
 			SPDR = 0;

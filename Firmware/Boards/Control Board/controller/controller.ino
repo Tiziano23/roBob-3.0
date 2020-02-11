@@ -1,3 +1,8 @@
+#include "devices.h"
+#include "gui_manager.h"
+#include "movement_interface.h"
+#include "libraries/spi/spi_interface_master.h"
+
 // Servo Pins --------------------//
 #define SERVO_LEFT 7
 #define SERVO_RIGHT 6
@@ -42,21 +47,18 @@
 //------ Data --------------------//
 #define LINE 0x00
 #define COLOR 0x01
+#define LEFT_COLOR_DATA 0x02
+#define RIGHT_COLOR_DATA 0x03
 //------ Functions ---------------//
 #define CAL_LINE 0x00
-#define CAL_COLOR 0x01
-#define CAL_COLOR_ABORT 0x02
-#define TOGGLE_LEFT_COLOR 0x03
-#define TOGGLE_RIGHT_COLOR 0x04
+#define CAL_WHITE 0x01
+#define CAL_GREEN 0x02
+#define CAL_BLACK 0x03
+#define CAL_ALUMI 0x04
+#define TOGGLE_LIGHTS 0x05
+#define TOGGLE_LEFT_COLOR 0x06
+#define TOGGLE_RIGHT_COLOR 0x07
 //--------------------------------//
-
-// EEPROM Addresses --------------//
-//--------------------------------//
-
-#include "devices.h"
-#include "gui_manager.h"
-#include "movement_interface.h"
-#include "libraries/spi/spi_interface_master.h"
 
 extern HardwareSerial Serial;
 
@@ -70,11 +72,17 @@ MainMenu mainMenu("main-menu");
 ListMenu calibration("calibration");
 ListMenu settings("settings");
 
+// main-menu --> calibration
+ListMenu colorCalibration("calibration:color");
+
 // main-menu --> settings
-ListMenu testing("settings:system-test");
+ListMenu systemTest("settings:system-test");
 ListMenu servoSettings("settings:servo-settings");
 ListMenu ledSettings("settings:led-settings");
 ListMenu pidSettings("settings:pid-settings");
+
+// main-menu --> settings --> systemTest
+ListMenu colorTest("settings:system-test:color");
 
 // main-menu --> settings --> servoSettings
 ListMenu leftServoSettings("settings:servo-settings:left-servo");
@@ -115,7 +123,21 @@ void setup()
         spi.execAction(CAL_LINE);
         gui.drawLoadingBar("Calibrating", 10000);
     }));
-    calibration.addItem(MenuItem("Color", []() { gui.colorCalibrationWizard(spi, keyboard); }));
+    calibration.addItem(MenuItem("Color", []() { gui.setActiveMenu("calibration:color"); }));
+
+    colorCalibration.addItem(MenuItem("Back", []() { gui.setActiveMenu("calibration"); }));
+    colorCalibration.addItem(MenuItem("White", []() {
+        gui.colorCalibrationGui(keyboard, spi, CAL_WHITE, 6000);
+    }));
+    colorCalibration.addItem(MenuItem("Green", []() {
+        gui.colorCalibrationGui(keyboard, spi, CAL_GREEN, 6000);
+    }));
+    colorCalibration.addItem(MenuItem("Black", []() {
+        gui.colorCalibrationGui(keyboard, spi, CAL_BLACK, 6000);
+    }));
+    colorCalibration.addItem(MenuItem("Aluminium", []() {
+        gui.colorCalibrationGui(keyboard, spi, CAL_ALUMI, 6000);
+    }));
 
     settings.addItem(MenuItem("Back", []() { gui.setActiveMenu("main-menu"); }));
     settings.addItem(MenuItem("System Test", []() { gui.setActiveMenu("settings:system-test"); }));
@@ -123,44 +145,9 @@ void setup()
     settings.addItem(MenuItem("PID Settings", []() { gui.setActiveMenu("settings:pid-settings"); }));
     settings.addItem(MenuItem("LED Settings", []() { gui.setActiveMenu("settings:led-settings"); }));
 
-    pidSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
-    pidSettings.addItem(MenuItem("Set speed", []() {
-        movement.setSpeed(gui.numberDialog(movement.getSpeed(), 0.0, 1.0, 0.01, keyboard, Percentual));
-    }));
-    pidSettings.addItem(MenuItem("Set Kp", []() {
-        movement.setKp(gui.numberDialog(movement.getKp(), 0.0, 10.0, 0.001, keyboard, Real3));
-    }));
-    pidSettings.addItem(MenuItem("Set Ki", []() {
-        movement.setKi(gui.numberDialog(movement.getKi(), 0.0, 10.0, 0.001, keyboard, Real3));
-    }));
-    pidSettings.addItem(MenuItem("Set Kd", []() {
-        movement.setKd(gui.numberDialog(movement.getKd(), 0.0, 10.0, 0.001, keyboard, Real3));
-    }));
-
-    ledSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
-    ledSettings.addItem(MenuItem("Set Hue", []() {
-        led.setH(gui.numberDialog<int>(led.getColor().getH(), 0, 360, 1, keyboard, Integer, [](int h) { led.setH(h); }));
-    }));
-    ledSettings.addItem(MenuItem("Set Saturation", []() {
-        led.setS(gui.numberDialog<float>(led.getColor().getS(), 0, 1, 0.01, keyboard, Real2, [](float s) { led.setS(s); }));
-    }));
-    ledSettings.addItem(MenuItem("Set Brightness", []() {
-        led.setV(gui.numberDialog<float>(led.getColor().getV(), 0, 1, 0.01, keyboard, Real2, [](float v) { led.setV(v); }));
-    }));
-
-    testing.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
-    testing.addItem(MenuItem("Color", []() {
-        while (!keyboard.pressedOnce(MIDDLE))
-        {
-            keyboard.update();
-            byte colorData = spi.requestData<byte>(COLOR);
-            byte color_sx = colorData & B1;
-            byte color_dx = (colorData & B10) >> 1;
-            byte aluminium = (colorData & B100) >> 2;
-            gui.printColorData(color_sx, color_dx, aluminium);
-        }
-    }));
-    testing.addItem(MenuItem("Accelerometer", []() {
+    systemTest.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
+    systemTest.addItem(MenuItem("Color Sensors", []() { gui.setActiveMenu("settings:system-test:color"); }));
+    systemTest.addItem(MenuItem("Accelerometer", []() {
         while (!keyboard.pressedOnce(MIDDLE))
         {
             keyboard.update();
@@ -180,7 +167,7 @@ void setup()
             d.display();
         }
     }));
-    testing.addItem(MenuItem("Gyroscope", []() {
+    systemTest.addItem(MenuItem("Gyroscope", []() {
         while (!keyboard.pressedOnce(MIDDLE))
         {
             keyboard.update();
@@ -200,18 +187,65 @@ void setup()
             d.display();
         }
     }));
-    testing.addItem(MenuItem("Left Servo", []() {
+    systemTest.addItem(MenuItem("Left Servo", []() {
         gui.numberDialog<float>(0, -1, 1, 0.01, keyboard, Percentual, [](float n) { movement.getLeftMotor().setSpeed(n); });
         movement.getLeftMotor().setSpeed(0);
     }));
-    testing.addItem(MenuItem("Right Servo", []() {
+    systemTest.addItem(MenuItem("Right Servo", []() {
         gui.numberDialog<float>(0, -1, 1, 0.01, keyboard, Percentual, [](float n) { movement.getRightMotor().setSpeed(n); });
         movement.getRightMotor().setSpeed(0);
     }));
 
+    colorTest.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings:system-test"); }));
+    colorTest.addItem(MenuItem("Toggle lights", []() {
+        spi.execAction(TOGGLE_LIGHTS);
+    }));
+    colorTest.addItem(MenuItem("Green recognition", []() {
+        while (!keyboard.pressedOnce(MIDDLE))
+        {
+            keyboard.update();
+            byte data = spi.requestData<byte>(COLOR);
+            bool sx, dx, aluminium;
+            decodeColorData(data, sx, dx, aluminium);
+            gui.printColorData(sx, dx, aluminium);
+        }
+    }));
+    colorTest.addItem(MenuItem("Left color", []() {
+        d.clearDisplay();
+        d.display();
+        while (!keyboard.pressedOnce(MIDDLE))
+        {
+            keyboard.update();
+            hsv data = spi.requestData<hsv>(LEFT_COLOR_DATA);
+            data.v = 0.1;
+            led.setHSV(data);
+
+            d.clearDisplay();
+            d.setCursor(0,0);
+            d.setTextSize(1);
+            d.print(data.h);
+            d.print(", ");
+            d.print(data.s);
+            d.print(", ");
+            d.println(data.v);
+            d.display();
+        }
+    }));
+    colorTest.addItem(MenuItem("Right color", []() {
+        d.clearDisplay();
+        d.display();
+        while (!keyboard.pressedOnce(MIDDLE))
+        {
+            keyboard.update();
+            hsv data = spi.requestData<hsv>(RIGHT_COLOR_DATA);
+            data.v = 0.1;
+            led.setHSV(data);
+        }
+    }));
+
     servoSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
     servoSettings.addItem(MenuItem("Move Forward", []() { movement.moveForward(1); }));
-    servoSettings.addItem(MenuItem("Left Servo", []() { gui.setActiveMenu("settings:servo-settings:left-servo"); }));
+    servoSettings.addItem(MenuItem("Left Servo", []() { gui.setActiveMenu("settings:servo-settings:left-serùvo"); }));
     servoSettings.addItem(MenuItem("Right Servo", []() { gui.setActiveMenu("settings:servo-settings:right-servo"); }));
 
     leftServoSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings:servo-settings"); }));
@@ -240,15 +274,44 @@ void setup()
         });
     }));
 
+    pidSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
+    pidSettings.addItem(MenuItem("Set speed", []() {
+        movement.setSpeed(gui.numberDialog(movement.getSpeed(), 0.0, 1.0, 0.01, keyboard, Percentual));
+    }));
+    pidSettings.addItem(MenuItem("Set Kp", []() {
+        movement.setKp(gui.numberDialog(movement.getKp(), 0.0, 10.0, 0.001, keyboard, Real3));
+    }));
+    pidSettings.addItem(MenuItem("Set Ki", []() {
+        movement.setKi(gui.numberDialog(movement.getKi(), 0.0, 10.0, 0.001, keyboard, Real3));
+    }));
+    pidSettings.addItem(MenuItem("Set Kd", []() {
+        movement.setKd(gui.numberDialog(movement.getKd(), 0.0, 10.0, 0.001, keyboard, Real3));
+    }));
+
+    ledSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
+    ledSettings.addItem(MenuItem("Set Hue", []() {
+        led.setH(gui.numberDialog<int>(led.getColor().getH() * 360, 0, 360, 1, keyboard, Integer, [](int h) { led.setH((double)h / 360.); }));
+    }));
+    ledSettings.addItem(MenuItem("Set Saturation", []() {
+        led.setS(gui.numberDialog<float>(led.getColor().getS(), 0, 1, 0.01, keyboard, Real2, [](float s) { led.setS(s); }));
+    }));
+    ledSettings.addItem(MenuItem("Set Brightness", []() {
+        led.setV(gui.numberDialog<float>(led.getColor().getV(), 0, 1, 0.01, keyboard, Real2, [](float v) { led.setV(v); }));
+    }));
+
     gui.addMenu(&mainMenu);
+
     gui.addMenu(&calibration);
+    gui.addMenu(&colorCalibration);
+
     gui.addMenu(&settings);
-    gui.addMenu(&pidSettings);
-    gui.addMenu(&ledSettings);
-    gui.addMenu(&testing);
+    gui.addMenu(&systemTest);
+    gui.addMenu(&colorTest);
     gui.addMenu(&servoSettings);
     gui.addMenu(&leftServoSettings);
     gui.addMenu(&rightServoSettings);
+    gui.addMenu(&pidSettings);
+    gui.addMenu(&ledSettings);
 
     gui.setActiveMenu("main-menu");
     gui.init();
@@ -285,15 +348,14 @@ void followLine()
         movement.setLinePosition(line);
         movement.followLine();
 
-        byte color = spi.requestData<byte>(COLOR);
-        byte color_sx = color & B1;
-        byte color_dx = (color & B10) >> 1;
-        byte aluminium = (color & B100) >> 2;
+        byte colorData = spi.requestData<byte>(COLOR);
+        bool greenSx, greenDx, aluminium;
+        decodeColorData(colorData, greenSx, greenDx, aluminium);
 
-        if (color_sx)
+        if (greenSx)
         {
         }
-        if (color_dx)
+        if (greenDx)
         {
         }
 
@@ -302,10 +364,17 @@ void followLine()
         d.setCursor(40, 0);
         d.println(line);
         d.print("SX:");
-        d.print(color_sx);
+        d.print(greenSx);
         d.print("  DX:");
-        d.println(color_dx);
+        d.println(greenDx);
         d.display();
     }
     movement.stop();
+}
+
+void decodeColorData(byte data, bool &sx, bool &dx, bool &aluminium)
+{
+    sx = data & 1;
+    dx = (data & 2) >> 1;
+    aluminium = (data & 4) >> 2;
 }
