@@ -15,20 +15,20 @@
 //--------------------------------//
 
 // SR-04 Ultrasonic sensos pins --//
-#define US_N_T 0
-#define US_N_E 2
+#define US_NE_T 23
+#define US_NE_E 25
 
-#define US_NW_T 3
-#define US_NW_E 4
+#define US_N_T 35
+#define US_N_E 37
 
-#define US_NE_T 45
-#define US_NE_E 47
+#define US_NW_T 45
+#define US_NW_E 47
 
-#define US_SW_T 6
-#define US_SW_E 7
+#define US_SW_T 39
+#define US_SW_E 41
 
-#define US_SE_T 22
-#define US_SE_E 24
+#define US_SE_T 27
+#define US_SE_E 29
 //--------------------------------//
 
 // RGB Led pins ------------------//
@@ -63,12 +63,6 @@ extern HardwareSerial Serial;
 RGBLed led(LED_R, LED_G, LED_B);
 Buzzer buzzer = Buzzer(BUZ_PIN);
 Keyboard keyboard(KB_BTN_LEFT, KB_BTN_CENTER, KB_BTN_RIGHT, KB_CONNECTED);
-// SR_04 US_N  = SR_04(US_N_T, US_N_E);
-// SR_04 US_NW = SR_04(US_NW_T, US_NW_E);
-// SR_04 US_NE = SR_04(US_NE_T, US_NE_E);
-// SR_04 US_SW = SR_04(US_SW_T, US_SW_E);
-// SR_04 US_SE = SR_04(US_SE_T, US_SE_E);
-// SR_04 sensors[5] = {US_N, US_NW, US_NE, US_SW, US_SE};
 
 MainMenu mainMenu("main-menu");
 
