@@ -55,8 +55,9 @@
 #define CAL_GREEN 0x02
 #define CAL_BLACK 0x03
 #define CAL_ALUMI 0x04
-#define TOGGLE_LEFT_COLOR 0x05
-#define TOGGLE_RIGHT_COLOR 0x06
+#define TOGGLE_LIGHTS 0x05
+#define TOGGLE_LEFT_COLOR 0x06
+#define TOGGLE_RIGHT_COLOR 0x07
 //--------------------------------//
 
 extern HardwareSerial Serial;
@@ -202,6 +203,9 @@ void setup()
     }));
 
     colorTest.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings:system-test"); }));
+    colorTest.addItem(MenuItem("Toggle lights", []() {
+        spi.execAction(TOGGLE_LIGHTS);
+    }));
     colorTest.addItem(MenuItem("Green recognition", []() {
         while (!keyboard.pressedOnce(MIDDLE))
         {
@@ -219,7 +223,18 @@ void setup()
         {
             keyboard.update();
             hsv data = spi.requestData<hsv>(LEFT_COLOR_DATA);
+            data.v = 0.1;
             led.setHSV(data);
+
+            d.clearDisplay();
+            d.setCursor(0,0);
+            d.setTextSize(1);
+            d.print(data.h);
+            d.print(", ");
+            d.print(data.s);
+            d.print(", ");
+            d.println(data.v);
+            d.display();
         }
     }));
     colorTest.addItem(MenuItem("Right color", []() {
@@ -229,13 +244,14 @@ void setup()
         {
             keyboard.update();
             hsv data = spi.requestData<hsv>(RIGHT_COLOR_DATA);
+            data.v = 0.1;
             led.setHSV(data);
         }
     }));
 
     servoSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
     servoSettings.addItem(MenuItem("Move Forward", []() { movement.moveForward(1); }));
-    servoSettings.addItem(MenuItem("Left Servo", []() { gui.setActiveMenu("settings:servo-settings:left-servo"); }));
+    servoSettings.addItem(MenuItem("Left Servo", []() { gui.setActiveMenu("settings:servo-settings:left-serùvo"); }));
     servoSettings.addItem(MenuItem("Right Servo", []() { gui.setActiveMenu("settings:servo-settings:right-servo"); }));
 
     leftServoSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings:servo-settings"); }));
@@ -280,7 +296,7 @@ void setup()
 
     ledSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
     ledSettings.addItem(MenuItem("Set Hue", []() {
-        led.setH(gui.numberDialog<int>(led.getColor().getH(), 0, 360, 1, keyboard, Integer, [](int h) { led.setH((double)h / 360.); }));
+        led.setH(gui.numberDialog<int>(led.getColor().getH() * 360, 0, 360, 1, keyboard, Integer, [](int h) { led.setH((double)h / 360.); }));
     }));
     ledSettings.addItem(MenuItem("Set Saturation", []() {
         led.setS(gui.numberDialog<float>(led.getColor().getS(), 0, 1, 0.01, keyboard, Real2, [](float s) { led.setS(s); }));

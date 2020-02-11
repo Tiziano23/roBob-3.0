@@ -268,9 +268,9 @@ public:
         pinMode(b_pin, OUTPUT);
         applyColor();
     }
-    void setH(int h)
+    void setH(double h)
     {
-        color.setH((float)h / 360.);
+        color.setH(h);
         applyColor();
     }
     void setS(double s)

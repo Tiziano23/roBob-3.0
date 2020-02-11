@@ -1,4 +1,4 @@
-#include <NeoSWSerial.h>
+#include <SoftwareSerial.h>
 #include "libraries/eepromManager.h"
 #include "libraries/utils.h"
 
@@ -18,30 +18,30 @@
 #define SX_LED 13
 //------------------//
 
-// #define UPDATE_INTERVAL 1500
-// #define CLEAR_EEPROM
-
-extern HardwareSerial Serial;
+#define UPDATE_INTERVAL 150
 
 struct config
 {
+    bool ready = false;
     bool aluminium = false;
+
+    bool lightsEnabled = true;
     bool leftColorEnabled = true;
     bool rightColorEnabled = true;
+
     bool calibrateWhite = false;
     bool calibrateGreen = false;
     bool calibrateBlack = false;
     bool calibrateAluminium = false;
-    bool readyForNextRead = false;
 
     hsv leftColorData = {0, 0, 0};
     hsv rightColorData = {0, 0, 0};
 } cfg;
 
-bool update = false;
-
+extern HardwareSerial Serial;
 ColorManager colorManager(SX_SEL, SX_LED, DX_SEL, DX_LED);
-NeoSWSerial configSerial(CONFIG_RX, CONFIG_TX);
+SoftwareSerial configSerial(CONFIG_RX, CONFIG_TX);
+unsigned long lastUpdate;
 
 void setup()
 {
@@ -53,59 +53,71 @@ void setup()
     digitalWrite(GREEN_SX, LOW);
     digitalWrite(GREEN_DX, LOW);
 
-#ifdef CLEAR_EEPROM
-    eepromManager.clear();
-#endif
+    // eepromManager.clear();
     eepromManager.init();
     colorManager.init();
 
-    digitalWrite(SX_LED, HIGH);
-    digitalWrite(DX_LED, HIGH);
-
-    printCalibrations();
+    lastUpdate = millis() % (UPDATE_INTERVAL * 2);
 }
 
 void loop()
 {
-    if (configSerial.available() >= sizeof(config))
+    if (configSerial.available())
     {
         readConfiguration();
     }
 
-    if (cfg.calibrateWhite)
+    colorManager.measure();
+    // Serial.print(colorManager.getLeftSensor().getColor().getH());
+    // Serial.print(", ");
+    // Serial.print(colorManager.getLeftSensor().getColor().getS());
+    // Serial.print(", ");
+    // Serial.println(colorManager.getLeftSensor().getColor().getV());
+
+    if (cfg.ready)
     {
-        cfg.calibrateWhite = false;
-        colorManager.calibrateWhite();
-    }
-    if (cfg.calibrateGreen)
-    {
-        cfg.calibrateGreen = false;
-        colorManager.calibrateGreen();
-    }
-    if (cfg.calibrateBlack)
-    {
-        cfg.calibrateBlack = false;
-        colorManager.calibrateBlack();
-    }
-    if (cfg.calibrateAluminium)
-    {
-        cfg.calibrateAluminium = false;
-        colorManager.calibrateAluminium();
+        if (cfg.calibrateWhite)
+        {
+            cfg.calibrateWhite = false;
+            colorManager.calibrateWhite();
+        }
+        if (cfg.calibrateGreen)
+        {
+            cfg.calibrateGreen = false;
+            colorManager.calibrateGreen();
+        }
+        if (cfg.calibrateBlack)
+        {
+            cfg.calibrateBlack = false;
+            colorManager.calibrateBlack();
+        }
+        if (cfg.calibrateAluminium)
+        {
+            cfg.calibrateAluminium = false;
+            colorManager.calibrateAluminium();
+        }
+
+        if (cfg.lightsEnabled)
+        {
+            colorManager.lightsOn();
+        }
+        else
+        {
+            colorManager.lightsOff();
+        }
+
+        if ((millis() % (UPDATE_INTERVAL * 2)) - lastUpdate > UPDATE_INTERVAL)
+        {
+            lastUpdate = millis() % (UPDATE_INTERVAL * 2);
+            cfg.leftColorData = colorManager.getLeftSensor().getColor().getHSV();
+            cfg.rightColorData = colorManager.getRightSensor().getColor().getHSV();
+            cfg.aluminium = colorManager.checkAluminium();
+            writeConfiguration();
+        }
     }
 
-    colorManager.measure();
     digitalWrite(GREEN_SX, colorManager.checkGreenSx());
     digitalWrite(GREEN_DX, colorManager.checkGreenDx());
-    cfg.aluminium = colorManager.checkAluminium();
-
-    cfg.leftColorData = colorManager.getLeftSensor().getColor().getHSV();
-    cfg.rightColorData = colorManager.getLeftSensor().getColor().getHSV();
-
-    if (cfg.readyForNextRead)
-    {
-        cfg.readyForNextRead = false;
-        writeConfiguration();
-    }
 }
 
 void writeConfiguration()
@@ -116,20 +128,32 @@ void readConfiguration()
 {
     configSerial.readBytes((uint8_t *)&cfg, sizeof(config));
 }
-
 void printConfiguration()
 {
     Serial.println(F("Configuration: { "));
-    Serial.print(F("\twhite: "));
-    Serial.print(cfg.calibrateWhite);
-    Serial.print(F("\n\tgreen: "));
-    Serial.print(cfg.calibrateGreen);
-    Serial.print(F("\n\tblack: "));
-    Serial.print(cfg.calibrateBlack);
+    Serial.print(F("\tready: "));
+    Serial.print(cfg.ready);
     Serial.print(F("\n\taluminium: "));
+    Serial.print(cfg.aluminium);
+
+    Serial.print(F("\n\tightsEnabled: "));
+    Serial.print(cfg.lightsEnabled);
+    Serial.print(F("\n\tleftColorEnabled: "));
+    Serial.print(cfg.leftColorEnabled);
+    Serial.print(F("\n\trightColorEnabled: "));
+    Serial.print(cfg.rightColorEnabled);
+
+    Serial.print(F("\n\tcalibrateWhite: "));
+    Serial.print(cfg.calibrateWhite);
+    Serial.print(F("\n\tcalibrateGreen: "));
+    Serial.print(cfg.calibrateGreen);
+    Serial.print(F("\n\tcalibrateBlack: "));
+    Serial.print(cfg.calibrateBlack);
+    Serial.print(F("\n\tcalibrateAluminium: "));
     Serial.print(cfg.calibrateAluminium);
     Serial.println(F("\n}"));
 }
+
 void printCalibrations()
 {
     Serial.println(F("Left sensor:"));

@@ -14,7 +14,7 @@
 class SPIMasterInterface
 {
 private:
-    const SPISettings slaveSettings = SPISettings(7500000, MSBFIRST, SPI_MODE0);
+    const SPISettings slaveSettings = SPISettings(5000000, MSBFIRST, SPI_MODE0);
     static const uint8_t actionBufferOffset = 1;
     static const uint8_t dataBufferOffset = 17;
     static const int TRANSFER_DELAY = 50; //µs

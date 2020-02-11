@@ -259,9 +259,9 @@ private:
 
     void updateValues()
     {
+        uint16_t value;
         select();
         apds.readAmbientLight(data.a);
-        uint16_t value;
         apds.readRedLight(value);
         data.r = (double)value / data.a;
         apds.readGreenLight(value);
@@ -270,10 +270,6 @@ private:
         data.b = (double)value / data.a;
         deselect();
         color.setRGB(data.r, data.g, data.b);
-        // double total = data.r + data.g + data.b;
-        // data.r = data.r / total;
-        // data.g = data.g / total;
-        // data.b = data.b / total;
     }
     void calibrate(SensorData &ref, SensorData &rng)
     {
@@ -369,7 +365,7 @@ private:
         Serial.println(max.a - ref.a, 5);
         Serial.print("Range Min: ");
         Serial.println(rng.minA, 5);
-        Serial.print("Range Max:");
+        Serial.print("Range Max: ");
         Serial.println(rng.maxA, 5);
     }
 };
@@ -398,6 +394,17 @@ public:
         dxSensor.measure();
     }
 
+    void lightsOn()
+    {
+        sxSensor.lightsOn();
+        dxSensor.lightsOn();
+    }
+    void lightsOff()
+    {
+        sxSensor.lightsOff();
+        dxSensor.lightsOff();
+    }
+
     bool checkGreenSx()
     {
         return sxSensor.getDiscreteColor() == GREEN;
@@ -421,10 +428,8 @@ public:
     {
         Serial.println("Calibrating Sx...");
         sxSensor.calibrateGreen();
-        //delay(5000);
         Serial.println("Calibrating Dx...");
         dxSensor.calibrateGreen();
-        //delay(5000);
         saveCalibration();
     }
     void calibrateBlack()

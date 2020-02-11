@@ -117,9 +117,9 @@ private:
 
     void updateRGB()
     {
-        double kR = (5 + (float)cHSV.h * 360. / 60.);
-        double kG = (3 + (float)cHSV.h * 360. / 60.);
-        double kB = (1 + (float)cHSV.h * 360. / 60.);
+        double kR = (5 + (cHSV.h * 6));
+        double kG = (3 + (cHSV.h * 6));
+        double kB = (1 + (cHSV.h * 6));
         kR = kR - ((int)kR / 6) * 6;
         kG = kG - ((int)kG / 6) * 6;
         kB = kB - ((int)kB / 6) * 6;
@@ -133,12 +133,12 @@ private:
         double n = cHSV.v - min(min(cRGB.r, cRGB.g), cRGB.b);
         double k = 0;
         if (cHSV.v == cRGB.r)
-            k = n != 0 ? cRGB.g - cRGB.b / n : 0;
+            k = n != 0 ? 0 + (cRGB.g - cRGB.b) / n : 0;
         else if (cHSV.v == cRGB.g)
             k = n != 0 ? 2 + (cRGB.b - cRGB.r) / n : 0;
         else if (cHSV.v == cRGB.b)
             k = n != 0 ? 4 + (cRGB.r - cRGB.g) / n : 0;
-        cHSV.h = 60. * (k < 0 ? k + 6 : k) / 360.;
-        cHSV.s = cHSV.v ? 0 : n / cHSV.v;
+        cHSV.h = (k < 0 ? k + 6 : k) / 60.;
+        cHSV.s = cHSV.v != 0 ? n / cHSV.v : 0;
     }
 };

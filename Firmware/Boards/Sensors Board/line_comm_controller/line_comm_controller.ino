@@ -1,4 +1,5 @@
-#include <NeoSWSerial.h>
+#include <SoftwareSerial.h>
+// #include <NeoSWSerial.h>
 #include "libraries/spi/spi_interface_slave.h"
 #include "libraries/utils.h"
 
@@ -28,22 +29,26 @@
 #define CAL_GREEN 0x02
 #define CAL_BLACK 0x03
 #define CAL_ALUMI 0x04
-#define TOGGLE_LEFT_COLOR 0x05
-#define TOGGLE_RIGHT_COLOR 0x06
+#define TOGGLE_LIGHTS 0x05
+#define TOGGLE_LEFT_COLOR 0x06
+#define TOGGLE_RIGHT_COLOR 0x07
 //--------------------------------//
 
 extern HardwareSerial Serial;
 
 struct config
 {
+    bool ready = false;
     bool aluminium = false;
+
+    bool lightsEnabled = true;
     bool leftColorEnabled = true;
     bool rightColorEnabled = true;
+
     bool calibrateWhite = false;
     bool calibrateGreen = false;
     bool calibrateBlack = false;
     bool calibrateAluminium = false;
-    bool readyForNextRead = false;
 
     hsv leftColorData = {0, 0, 0};
     hsv rightColorData = {0, 0, 0};
@@ -53,7 +58,7 @@ const uint8_t sensor_pins[8] = {A5, A4, A3, A2, A1, A0, 8, 9};
 QTR_Controller qtr(sensor_pins, QTR_LED_PIN);
 SPISlaveInterface spi;
 
-NeoSWSerial configSerial(CONFIG_RX, CONFIG_TX);
+SoftwareSerial configSerial(CONFIG_RX, CONFIG_TX);
 
 void setup()
 {
@@ -97,33 +102,31 @@ void setup()
         cfg.rightColorEnabled = !cfg.rightColorEnabled;
         writeConfiguration();
     });
+    spi.setAction(TOGGLE_LIGHTS, []() {
+        cfg.lightsEnabled = !cfg.lightsEnabled;
+        writeConfiguration();
+    });
 
-    delay(1000);
-    cfg.readyForNextRead = true;
+    cfg.ready = true;
     writeConfiguration();
-    cfg.readyForNextRead = false;
 }
 
 void loop()
 {
-    while (spi.pendingActions() > 0)
+    while (spi.pendingActions())
     {
         spi.execAction();
     }
 
-    if (configSerial.available() >= sizeof(config))
+    if (configSerial.available())
     {
         readConfiguration();
-
-        Serial.println("ready!");
-        cfg.readyForNextRead = true;
-        writeConfiguration();
     }
 
     spi.setValue<double>(LINE_DATA, qtr.getLine());
     spi.setValue<byte>(COLOR_DATA, encodeColorData());
-    // spi.setValue<hsv>(LEFT_COLOR_DATA, cfg.leftColorData);
-    // spi.setValue<hsv>(RIGHT_COLOR_DATA, cfg.rightColorData);
+    spi.setValue<hsv>(LEFT_COLOR_DATA, cfg.leftColorData);
+    spi.setValue<hsv>(RIGHT_COLOR_DATA, cfg.rightColorData);
 }
 
 byte encodeColorData()
@@ -142,6 +145,31 @@ void writeConfiguration()
 void readConfiguration()
 {
     configSerial.readBytes((uint8_t *)&cfg, sizeof(config));
+}
+void printConfiguration()
+{
+    Serial.println(F("Configuration: { "));
+    Serial.print(F("\tready: "));
+    Serial.print(cfg.ready);
+    Serial.print(F("\n\taluminium: "));
+    Serial.print(cfg.aluminium);
+
+    Serial.print(F("\n\tlightsEnabled: "));
+    Serial.print(cfg.lightsEnabled);
+    Serial.print(F("\n\tleftColorEnabled: "));
+    Serial.print(cfg.leftColorEnabled);
+    Serial.print(F("\n\trightColorEnabled: "));
+    Serial.print(cfg.rightColorEnabled);
+
+    Serial.print(F("\n\tcalibrateWhite: "));
+    Serial.print(cfg.calibrateWhite);
+    Serial.print(F("\n\tcalibrateGreen: "));
+    Serial.print(cfg.calibrateGreen);
+    Serial.print(F("\n\tcalibrateBlack: "));
+    Serial.print(cfg.calibrateBlack);
+    Serial.print(F("\n\tcalibrateAluminium: "));
+    Serial.print(cfg.calibrateAluminium);
+    Serial.println(F("\n}"));
 }
 
 // SPI Interrupt -----------------//
