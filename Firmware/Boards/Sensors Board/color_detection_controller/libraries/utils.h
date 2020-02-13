@@ -120,9 +120,9 @@ private:
         double kR = (5 + (cHSV.h * 6));
         double kG = (3 + (cHSV.h * 6));
         double kB = (1 + (cHSV.h * 6));
-        kR = kR - ((int)kR / 6) * 6;
-        kG = kG - ((int)kG / 6) * 6;
-        kB = kB - ((int)kB / 6) * 6;
+        kR -= ((int)kR / 6) * 6;
+        kG -= ((int)kG / 6) * 6;
+        kB -= ((int)kB / 6) * 6;
         cRGB.r = (cHSV.v - cHSV.v * cHSV.s * max(min(min(kR, 4 - kR), 1), 0));
         cRGB.g = (cHSV.v - cHSV.v * cHSV.s * max(min(min(kG, 4 - kG), 1), 0));
         cRGB.b = (cHSV.v - cHSV.v * cHSV.s * max(min(min(kB, 4 - kB), 1), 0));

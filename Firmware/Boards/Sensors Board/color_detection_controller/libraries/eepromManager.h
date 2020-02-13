@@ -1,6 +1,6 @@
 #pragma once
 
-#include <EEPROM.h>
+#include <EEPROM/src/EEPROM.h>
 #include "array.h"
 
 extern HardwareSerial Serial;

@@ -1,5 +1,5 @@
 #pragma once
-#include <SPI.h>
+#include <SPI/src/SPI.h>
 
 // MISO-MOSI Communication pins --//
 //------ MEGA -------- NANO ------//
