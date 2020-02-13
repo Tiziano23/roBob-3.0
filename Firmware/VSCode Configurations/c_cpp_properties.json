@@ -116,11 +116,11 @@
                 "${sketchbookFolder}/libraries/**",
                 "${localAppData}/Arduino15/packages/arduino/tools/**",
                 "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/cores/**",
-                "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/libraries/**"
+                "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/libraries/**",
+                "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/variants/mega"
             ],
             "forcedInclude": [
-                "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/cores/arduino/Arduino.h",
-                "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/variants/mega/pins_arduino.h"
+                "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/cores/arduino/Arduino.h"
             ],
             "intelliSenseMode": "${default}"
         },
@@ -156,11 +156,11 @@
                 "${sketchbookFolder}/libraries/**",
                 "~/.arduino15/packages/arduino/tools/**",
                 "~/.arduino15/packages/arduino/hardware/avr/1.8.2/cores/**",
-                "~/.arduino15/packages/arduino/hardware/avr/1.8.2/libraries/**"
+                "~/.arduino15/packages/arduino/hardware/avr/1.8.2/libraries/**",
+                "~/.arduino15/packages/arduino/hardware/avr/1.8.2/variants/mega"
             ],
             "forcedInclude": [
-                "~/.arduino15/packages/arduino/hardware/avr/1.8.2/cores/arduino/Arduino.h",
-                "~/.arduino15/packages/arduino/hardware/avr/1.8.2/variants/mega/pins_arduino.h"
+                "~/.arduino15/packages/arduino/hardware/avr/1.8.2/cores/arduino/Arduino.h"
             ],
             "intelliSenseMode": "${default}"
         },
@@ -196,11 +196,11 @@
                 "${sketchbookFolder}/libraries/**",
                 "${localAppData}/Arduino15/packages/arduino/tools/**",
                 "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/cores/**",
-                "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/libraries/**"
+                "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/libraries/**",
+                "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/variants/standard"
             ],
             "forcedInclude": [
-                "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/cores/arduino/Arduino.h",
-                "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/variants/standard/pins_arduino.h"
+                "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/cores/arduino/Arduino.h"
             ],
             "intelliSenseMode": "${default}"
         },
@@ -236,11 +236,11 @@
                 "${sketchbookFolder}/libraries/**",
                 "~/.arduino15/packages/arduino/tools/**",
                 "~/.arduino15/packages/arduino/hardware/avr/1.8.2/cores/**",
-                "~/.arduino15/packages/arduino/hardware/avr/1.8.2/libraries/**"
+                "~/.arduino15/packages/arduino/hardware/avr/1.8.2/libraries/**",
+                "~/.arduino15/packages/arduino/hardware/avr/1.8.2/variants/standard"
             ],
             "forcedInclude": [
-                "~/.arduino15/packages/arduino/hardware/avr/1.8.2/cores/arduino/Arduino.h",
-                "~/.arduino15/packages/arduino/hardware/avr/1.8.2/variants/standard/pins_arduino.h"
+                "~/.arduino15/packages/arduino/hardware/avr/1.8.2/cores/arduino/Arduino.h"
             ],
             "intelliSenseMode": "${default}"
         }

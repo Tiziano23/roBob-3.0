@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "Libraries"
+		},
+		{
+			"path": "VSCode Configurations"
 		}
 	]
 }

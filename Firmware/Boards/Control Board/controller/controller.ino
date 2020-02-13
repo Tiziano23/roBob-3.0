@@ -14,7 +14,7 @@
 #define BUZ_PIN 2
 //--------------------------------//
 
-// SR-04 Ultrasonic sensos pins --//
+// SR-04 Ultrasonic sensors pins -//
 #define US_NE_T 23
 #define US_NE_E 25
 
