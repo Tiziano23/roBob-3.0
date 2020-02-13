@@ -242,12 +242,26 @@ public:
         pinMode(trig_pin, OUTPUT);
         pinMode(echo_pin, INPUT);
     }
-    float getDist()
+    float getDist(unsigned long maxDistance)
     {
+        unsigned long timeout = maxDistance * 58;
+        
         digitalWrite(trig_pin, HIGH);
         delayMicroseconds(10);
         digitalWrite(trig_pin, LOW);
-        return pulseIn(echo_pin, HIGH) / 48.0;
+
+        unsigned long startTrig = micros();
+        while (digitalRead(echo_pin) == 0 && micros() - startTrig < timeout)
+            ;
+
+        unsigned long startTime = micros();
+        while (digitalRead(echo_pin) == 1)
+            ;
+
+        unsigned long t = micros() - startTime;
+        if (t > timeout)
+            t = timeout;
+        return t / 58.0;
     }
 
 private:
