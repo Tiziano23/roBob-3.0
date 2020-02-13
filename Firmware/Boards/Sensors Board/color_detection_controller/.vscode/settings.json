@@ -17,6 +17,9 @@
         "string_view": "cpp",
         "memory": "cpp",
         "random": "cpp",
-        "initializer_list": "cpp"
+        "initializer_list": "cpp",
+        "functional": "cpp",
+        "istream": "cpp",
+        "limits": "cpp"
     }
 }

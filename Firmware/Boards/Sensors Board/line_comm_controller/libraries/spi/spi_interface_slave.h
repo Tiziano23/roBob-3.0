@@ -17,13 +17,14 @@ private:
 	static const uint8_t startAddressOffset = 1;
 	static const uint8_t actionBufferSize = 16;
 	static const uint8_t actionAddressOffset = startAddressOffset;
-	static const uint8_t dataBufferSize = 128;
+	static const uint8_t dataBufferSize = 32;
 	static const uint8_t dataAddressOffset = startAddressOffset + actionBufferSize;
+	static const uint8_t dataSize = 16;
 
 	Queue<uint8_t> actionAddressQueue;
 	volatile uint8_t currentByte = 0;
 	volatile void (*actionBuffer[actionBufferSize])();
-	volatile uint8_t dataBuffer[dataBufferSize][4];
+	volatile uint8_t dataBuffer[dataBufferSize][dataSize];
 
 	static void SPI_SS_FALLING()
 	{
@@ -32,10 +33,11 @@ private:
 public:
 	void init()
 	{
-		SPCR |= bit(SPE);
-		SPCR |= bit(SPIE);
+		SPCR |= _BV(SPE);
+		SPCR |= _BV(SPIE);
 
 		pinMode(SS, INPUT);
+		pinMode(SCK, INPUT);
 		pinMode(MOSI, INPUT);
 		pinMode(MISO, OUTPUT);
 
@@ -46,15 +48,9 @@ public:
 	template <typename T>
 	void setValue(uint8_t address, T value)
 	{
-		union U {
-			T value;
-			uint8_t bytes[sizeof(T)];
-		} conversion;
-		conversion.value = value;
-		for (int i = 0; i < sizeof(T); i++)
-		{
-			dataBuffer[address][i] = conversion.bytes[i];
-		}
+		if (sizeof(T) <= dataSize)
+			for (int i = 0; i < sizeof(T); i++)
+				dataBuffer[address][i] = ((uint8_t *)&value)[i];
 	}
 	uint8_t getByte(uint8_t address, uint8_t byteIndex)
 	{
@@ -90,10 +86,7 @@ public:
 			if (address < actionAddressOffset + actionBufferSize)
 				registerActionExecution(address);
 			else if (address < dataAddressOffset + dataBufferSize)
-			{
-				SPDR = getByte(address, currentByte);
-				currentByte++;
-			}
+				SPDR = getByte(address, currentByte++);
 			else
 			{
 				SPDR = 0;

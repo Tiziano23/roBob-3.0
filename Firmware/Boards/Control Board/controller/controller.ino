@@ -223,17 +223,20 @@ void setup()
         {
             keyboard.update();
             hsv data = spi.requestData<hsv>(LEFT_COLOR_DATA);
-            data.v = 0.1;
-            led.setHSV(data);
+            led.setH(data.h);
+            led.setS(data.s * 2);
+            led.setV(0.1);
 
             d.clearDisplay();
-            d.setCursor(0,0);
+            d.setCursor(0, 0);
             d.setTextSize(1);
-            d.print(data.h);
-            d.print(", ");
-            d.print(data.s);
-            d.print(", ");
-            d.println(data.v);
+            d.print("h: ");
+            d.print(data.h * 100, 5);
+            d.print("%\ns: ");
+            d.print(data.s * 100, 5);
+            d.print("%\nv: ");
+            d.print(data.v * 100, 5);
+            d.println("%");
             d.display();
         }
     }));
@@ -244,14 +247,27 @@ void setup()
         {
             keyboard.update();
             hsv data = spi.requestData<hsv>(RIGHT_COLOR_DATA);
-            data.v = 0.1;
-            led.setHSV(data);
+            led.setH(data.h);
+            led.setS(data.s * 2);
+            led.setV(0.1);
+
+            d.clearDisplay();
+            d.setCursor(0, 0);
+            d.setTextSize(1);
+            d.print("h: ");
+            d.print(data.h * 100, 5);
+            d.print("%\ns: ");
+            d.print(data.s * 100, 5);
+            d.print("%\nv: ");
+            d.print(data.v * 100, 5);
+            d.println("%");
+            d.display();
         }
     }));
 
     servoSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
     servoSettings.addItem(MenuItem("Move Forward", []() { movement.moveForward(1); }));
-    servoSettings.addItem(MenuItem("Left Servo", []() { gui.setActiveMenu("settings:servo-settings:left-serùvo"); }));
+    servoSettings.addItem(MenuItem("Left Servo", []() { gui.setActiveMenu("settings:servo-settings:left-servo"); }));
     servoSettings.addItem(MenuItem("Right Servo", []() { gui.setActiveMenu("settings:servo-settings:right-servo"); }));
 
     leftServoSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings:servo-settings"); }));

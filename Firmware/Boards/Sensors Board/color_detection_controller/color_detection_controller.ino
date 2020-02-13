@@ -68,11 +68,6 @@ void loop()
     }
 
     colorManager.measure();
-    // Serial.print(colorManager.getLeftSensor().getColor().getH());
-    // Serial.print(", ");
-    // Serial.print(colorManager.getLeftSensor().getColor().getS());
-    // Serial.print(", ");
-    // Serial.println(colorManager.getLeftSensor().getColor().getV());
 
     if (cfg.ready)
     {
@@ -156,23 +151,23 @@ void printConfiguration()
 
 void printCalibrations()
 {
-    Serial.println(F("Left sensor:"));
-    Serial.print("\t");
-    colorManager.getLeftSensor().printWhiteRef();
-    Serial.print("\t");
-    colorManager.getLeftSensor().printWhiteRng();
-    Serial.print("\t");
-    colorManager.getLeftSensor().printGreenRef();
-    Serial.print("\t");
-    colorManager.getLeftSensor().printGreenRng();
-    Serial.println(F("\nRight sensor:"));
-    Serial.print("\t");
-    colorManager.getRightSensor().printWhiteRef();
-    Serial.print("\t");
-    colorManager.getRightSensor().printWhiteRng();
-    Serial.print("\t");
-    colorManager.getRightSensor().printGreenRef();
-    Serial.print("\t");
-    colorManager.getRightSensor().printGreenRng();
-    Serial.println();
+    // Serial.println(F("Left sensor:"));
+    // Serial.print("\t");
+    // colorManager.getLeftSensor().printWhiteRef();
+    // Serial.print("\t");
+    // colorManager.getLeftSensor().printWhiteRng();
+    // Serial.print("\t");
+    // colorManager.getLeftSensor().printGreenRef();
+    // Serial.print("\t");
+    // colorManager.getLeftSensor().printGreenRng();
+    // Serial.println(F("\nRight sensor:"));
+    // Serial.print("\t");
+    // colorManager.getRightSensor().printWhiteRef();
+    // Serial.print("\t");
+    // colorManager.getRightSensor().printWhiteRng();
+    // Serial.print("\t");
+    // colorManager.getRightSensor().printGreenRef();
+    // Serial.print("\t");
+    // colorManager.getRightSensor().printGreenRng();
+    // Serial.println();
 }

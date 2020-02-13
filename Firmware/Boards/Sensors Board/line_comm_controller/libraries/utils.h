@@ -138,7 +138,7 @@ private:
             k = n != 0 ? 2 + (cRGB.b - cRGB.r) / n : 0;
         else if (cHSV.v == cRGB.b)
             k = n != 0 ? 4 + (cRGB.r - cRGB.g) / n : 0;
-        cHSV.h = 60. * (k < 0 ? k + 6 : k) / 360.;
+        cHSV.h = (k < 0 ? k + 6 : k) / 6.;
         cHSV.s = cHSV.v != 0 ? n / cHSV.v : 0;
     }
 };
