@@ -1,27 +1,6 @@
 {
     "configurations": [
         {
-            "name": "Linux",
-            "includePath": [
-                "${workspaceFolder}/**",
-                "/opt/arduino-1.8.10/hardware/**",
-                "/opt/arduino-1.8.10/libraries/**",
-                "/home/tiziano/Arduino/libraries/**"
-            ],
-            "forcedInclude": [
-                "/home/tiziano/.arduino15/packages/arduino/hardware/avr/1.8.2/cores/arduino/Arduino.h"
-            ],
-            "defines": [
-                "ARDUINO=10810",
-                "F_CPU=16000000L",
-                "ARDUINO_ARCH_AVR"
-            ],
-            "compilerPath": "/usr/bin/g++",
-            "cStandard": "c11",
-            "cppStandard": "c++17",
-            "intelliSenseMode": "${default}"
-        },
-        {
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
@@ -34,13 +13,25 @@
             "forcedInclude": [
                 "C:/Users/Tiziano/AppData/local/arduino15/packages/arduino/hardware/avr/1.8.1/cores/arduino/Arduino.h"
             ],
-            "defines": [
-                "ARDUINO=10810",
-                "F_CPU=16000000L",
-                "ARDUINO_ARCH_AVR",
-                "ARDUINO_AVR_MEGA2560"
+            "defines": [],
+            "compilerPath": "",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "${default}"
+        },
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/opt/arduino-1.8.10/hardware/**",
+                "/opt/arduino-1.8.10/libraries/**",
+                "/home/tiziano/Arduino/libraries/**"
             ],
-            "compilerPath": "D:/Programs/MinGW/bin/g++",
+            "forcedInclude": [
+                "/home/tiziano/.arduino15/packages/arduino/hardware/avr/1.8.2/cores/arduino/Arduino.h"
+            ],
+            "defines": [],
+            "compilerPath": "",
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "${default}"
