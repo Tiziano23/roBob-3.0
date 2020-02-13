@@ -1,9 +1,4 @@
-#include "devices.h"
-#include "gui_manager.h"
-#include "movement_interface.h"
-#include "libraries/spi/spi_interface_master.h"
-
-// Servo Pins --------------------//
+// Servo Pins -------------------//
 #define SERVO_LEFT 7
 #define SERVO_RIGHT 6
 //--------------------------------//
@@ -59,6 +54,12 @@
 #define TOGGLE_LEFT_COLOR 0x06
 #define TOGGLE_RIGHT_COLOR 0x07
 //--------------------------------//
+
+#include "navigation_manager.h"
+#include "devices.h"
+#include "gui_manager.h"
+#include "movement_interface.h"
+#include "libraries/spi/spi_interface_master.h"
 
 extern HardwareSerial Serial;
 
