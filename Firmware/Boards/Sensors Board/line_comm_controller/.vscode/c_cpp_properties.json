@@ -28,7 +28,8 @@
             "defines": [
                 "ARDUINO=10811",
                 "F_CPU=16000000L",
-                "ARDUINO_ARCH_AVR"
+                "ARDUINO_ARCH_AVR",
+                "ARDUINO_AVR_NANO"
             ],
             "includePath": [
                 "${workspaceFolder}/**",
@@ -67,7 +68,8 @@
             "defines": [
                 "ARDUINO=10811",
                 "F_CPU=16000000L",
-                "ARDUINO_ARCH_AVR"
+                "ARDUINO_ARCH_AVR",
+                "ARDUINO_AVR_NANO"
             ],
             "includePath": [
                 "${workspaceFolder}/**",

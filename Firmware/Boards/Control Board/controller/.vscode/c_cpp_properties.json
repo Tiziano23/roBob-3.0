@@ -28,14 +28,15 @@
             "defines": [
                 "ARDUINO=10811",
                 "F_CPU=16000000L",
-                "ARDUINO_ARCH_AVR"
+                "ARDUINO_ARCH_AVR",
+                "ARDUINO_AVR_MEGA2560"
             ],
             "includePath": [
                 "${workspaceFolder}/**",
                 "${sketchbookFolder}/libraries/**",
                 "${localAppData}/Arduino15/packages/arduino/tools/**",
                 "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/libraries/**",
-                "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/variants/standard/*",
+                "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/variants/mega/*",
                 "${localAppData}/Arduino15/packages/arduino/hardware/avr/1.8.2/cores/arduino/*"
             ],
             "forcedInclude": [
@@ -67,14 +68,15 @@
             "defines": [
                 "ARDUINO=10811",
                 "F_CPU=16000000L",
-                "ARDUINO_ARCH_AVR"
+                "ARDUINO_ARCH_AVR",
+                "ARDUINO_AVR_MEGA2560"
             ],
             "includePath": [
                 "${workspaceFolder}/**",
                 "${sketchbookFolder}/libraries/**",
                 "~/.arduino15/packages/arduino/tools/**",
                 "~/.arduino15/packages/arduino/hardware/avr/1.8.2/cores/arudino/*",
-                "~/.arduino15/packages/arduino/hardware/avr/1.8.2/variants/standard/*",
+                "~/.arduino15/packages/arduino/hardware/avr/1.8.2/variants/mega/*",
                 "~/.arduino15/packages/arduino/hardware/avr/1.8.2/libraries/**"
             ],
             "forcedInclude": [
