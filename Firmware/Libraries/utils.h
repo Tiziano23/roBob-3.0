@@ -14,6 +14,12 @@ void repeatFor(int duration, Function action)
     }
 }
 
+struct threshold
+{
+    double min;
+    double max;
+};
+
 struct rgb
 {
     double r;
@@ -66,7 +72,7 @@ public:
     {
         return cHSV;
     }
-    void setHSV(double h, float s, float v)
+    void setHSV(double h, double s, double v)
     {
         cHSV.h = constrain(h, 0., 1.);
         cHSV.s = constrain(s, 0., 1.);
@@ -92,6 +98,7 @@ public:
         cRGB.b = b;
         updateHSV();
     }
+
     double getH() { return cHSV.h; }
     void setH(double h)
     {
@@ -117,28 +124,36 @@ private:
 
     void updateRGB()
     {
-        double kR = (5 + (cHSV.h * 6));
-        double kG = (3 + (cHSV.h * 6));
-        double kB = (1 + (cHSV.h * 6));
-        kR -= ((int)kR / 6) * 6;
-        kG -= ((int)kG / 6) * 6;
-        kB -= ((int)kB / 6) * 6;
+        double kR = 5 + cHSV.h * 6;
+        double kG = 3 + cHSV.h * 6;
+        double kB = 1 + cHSV.h * 6;
+        if (kR > 6)
+            kR -= 6;
+        if (kG > 6)
+            kG -= 6;
+        if (kB > 6)
+            kB -= 6;
         cRGB.r = (cHSV.v - cHSV.v * cHSV.s * max(min(min(kR, 4 - kR), 1), 0));
         cRGB.g = (cHSV.v - cHSV.v * cHSV.s * max(min(min(kG, 4 - kG), 1), 0));
         cRGB.b = (cHSV.v - cHSV.v * cHSV.s * max(min(min(kB, 4 - kB), 1), 0));
     }
     void updateHSV()
     {
-        cHSV.v = max(max(cRGB.r, cRGB.g), cRGB.b);
-        double n = cHSV.v - min(min(cRGB.r, cRGB.g), cRGB.b);
+        double M = max(max(cRGB.r, cRGB.g), cRGB.b);
+        double m = min(min(cRGB.r, cRGB.g), cRGB.b);
+        double d = M - m;
         double k = 0;
-        if (cHSV.v == cRGB.r)
-            k = n != 0 ? 0 + (cRGB.g - cRGB.b) / n : 0;
-        else if (cHSV.v == cRGB.g)
-            k = n != 0 ? 2 + (cRGB.b - cRGB.r) / n : 0;
-        else if (cHSV.v == cRGB.b)
-            k = n != 0 ? 4 + (cRGB.r - cRGB.g) / n : 0;
-        cHSV.h = (k < 0 ? k + 6 : k) / 6.;
-        cHSV.s = cHSV.v != 0 ? n / cHSV.v : 0;
+        if (d != 0)
+        {
+            if (M == cRGB.r)
+                k = (0 + (cRGB.g - cRGB.b) / d) / 6.;
+            else if (M == cRGB.g)
+                k = (2 + (cRGB.b - cRGB.r) / d) / 6.;
+            else if (M == cRGB.b)
+                k = (4 + (cRGB.r - cRGB.g) / d) / 6.;
+        }
+        cHSV.h = k < 0 ? k + 1 : k;
+        cHSV.s = M != 0 ? d / M : 0;
+        cHSV.v = M;
     }
 };

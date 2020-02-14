@@ -105,12 +105,6 @@ void setup()
     movement.init();
     accelGyro.init();
 
-    // US_N.init();
-    // US_NW.init();
-    // US_NE.init();
-    // US_SW.init();
-    // US_SE.init();
-
     movement.attachLeftMotor(SERVO_LEFT);
     movement.attachRightMotor(SERVO_RIGHT);
     movement.setGyroscopeAccelerometer(accelGyro);
@@ -220,17 +214,17 @@ void setup()
             hsv data = spi.requestData<hsv>(LEFT_COLOR_DATA);
             led.setH(data.h);
             led.setS(data.s * 2);
-            led.setV(0.1);
+            led.setB(0.1);
 
             d.clearDisplay();
             d.setCursor(0, 0);
             d.setTextSize(1);
             d.print("h: ");
-            d.print(data.h * 100, 5);
+            d.print(data.h, 5);
             d.print("%\ns: ");
-            d.print(data.s * 100, 5);
+            d.print(data.s, 5);
             d.print("%\nv: ");
-            d.print(data.v * 100, 5);
+            d.print(data.v, 5);
             d.println("%");
             d.display();
         }
@@ -244,7 +238,7 @@ void setup()
             hsv data = spi.requestData<hsv>(RIGHT_COLOR_DATA);
             led.setH(data.h);
             led.setS(data.s * 2);
-            led.setV(0.1);
+            led.setB(0.1);
 
             d.clearDisplay();
             d.setCursor(0, 0);
@@ -313,7 +307,7 @@ void setup()
         led.setS(gui.numberDialog<float>(led.getColor().getS(), 0, 1, 0.01, keyboard, Real2, [](float s) { led.setS(s); }));
     }));
     ledSettings.addItem(MenuItem("Set Brightness", []() {
-        led.setV(gui.numberDialog<float>(led.getColor().getV(), 0, 1, 0.01, keyboard, Real2, [](float v) { led.setV(v); }));
+        led.setB(gui.numberDialog<float>(led.getColor().getB(), 0, 1, 0.01, keyboard, Real2, [](float v) { led.setB(v); }));
     }));
 
     gui.addMenu(&mainMenu);
