@@ -1,5 +1,4 @@
 #include <SoftwareSerial.h>
-// #include <NeoSWSerial.h>
 #include "libraries/spi/spi_interface_slave.h"
 #include "libraries/utils.h"
 
