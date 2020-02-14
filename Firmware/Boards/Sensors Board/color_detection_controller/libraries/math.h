@@ -139,7 +139,7 @@ double avg(double values[], int n)
     }
     return s / (double)n;
 }
-double fMap(double n, double in_min, double in_max, double out_min, double out_max)
+double fmap(double n, double in_min, double in_max, double out_min, double out_max)
 {
     return (n - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }

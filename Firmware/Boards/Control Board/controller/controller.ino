@@ -141,6 +141,18 @@ void setup()
     settings.addItem(MenuItem("LED Settings", []() { gui.setActiveMenu("settings:led-settings"); }));
 
     systemTest.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
+    systemTest.addItem(MenuItem("Line Sensors", []() {
+        while (!keyboard.pressedOnce(MIDDLE))
+        {
+            keyboard.update();
+            double line = spi.requestData<double>(LINE);
+            d.clearDisplay();
+            d.setTextSize(2);
+            d.setCursor(40, 0);
+            d.println(line);
+            d.display();
+        }
+    }));
     systemTest.addItem(MenuItem("Color Sensors", []() { gui.setActiveMenu("settings:system-test:color"); }));
     systemTest.addItem(MenuItem("Accelerometer", []() {
         while (!keyboard.pressedOnce(MIDDLE))
@@ -212,19 +224,19 @@ void setup()
         {
             keyboard.update();
             hsv data = spi.requestData<hsv>(LEFT_COLOR_DATA);
-            led.setH(data.h);
-            led.setS(data.s * 2);
-            led.setB(0.1);
+            led.setH(data.h - 0.1);
+            led.setS(math::fmap(data.s, 0.46, 0.51, 0, 1));
+            led.setV(0.1);
 
             d.clearDisplay();
             d.setCursor(0, 0);
             d.setTextSize(1);
             d.print("h: ");
-            d.print(data.h, 5);
+            d.print(data.h * 100., 5);
             d.print("%\ns: ");
-            d.print(data.s, 5);
+            d.print(data.s * 100., 5);
             d.print("%\nv: ");
-            d.print(data.v, 5);
+            d.print(data.v * 100., 5);
             d.println("%");
             d.display();
         }
@@ -236,9 +248,9 @@ void setup()
         {
             keyboard.update();
             hsv data = spi.requestData<hsv>(RIGHT_COLOR_DATA);
-            led.setH(data.h);
-            led.setS(data.s * 2);
-            led.setB(0.1);
+            led.setH(data.h - 0.1);
+            led.setS(math::fmap(data.s, 0.46, 0.51, 0, 1));
+            led.setV(0.05);
 
             d.clearDisplay();
             d.setCursor(0, 0);
@@ -307,7 +319,7 @@ void setup()
         led.setS(gui.numberDialog<float>(led.getColor().getS(), 0, 1, 0.01, keyboard, Real2, [](float s) { led.setS(s); }));
     }));
     ledSettings.addItem(MenuItem("Set Brightness", []() {
-        led.setB(gui.numberDialog<float>(led.getColor().getB(), 0, 1, 0.01, keyboard, Real2, [](float v) { led.setB(v); }));
+        led.setV(gui.numberDialog<float>(led.getColor().getV(), 0, 1, 0.01, keyboard, Real2, [](float v) { led.setV(v); }));
     }));
 
     gui.addMenu(&mainMenu);

@@ -39,17 +39,11 @@ public:
     Color() {}
     Color(rgb data)
     {
-        cRGB.r = constrain(data.r, 0., 1.);
-        cRGB.g = constrain(data.g, 0., 1.);
-        cRGB.b = constrain(data.b, 0., 1.);
-        updateHSV();
+        setRGB(data);
     }
     Color(hsv data)
     {
-        cHSV.h = constrain(data.h, 0., 1.);
-        cHSV.s = constrain(data.s, 0., 1.);
-        cHSV.v = constrain(data.v, 0., 1.);
-        updateRGB();
+        setHSV(data);
     }
     Color(const Color &c)
     {
@@ -68,6 +62,13 @@ public:
         cRGB.b = constrain(b, 0., 1.);
         updateHSV();
     }
+    void setRGB(rgb data)
+    {
+        cRGB.r = constrain(data.r, 0., 1.);
+        cRGB.g = constrain(data.g, 0., 1.);
+        cRGB.b = constrain(data.b, 0., 1.);
+        updateHSV();
+    }
     hsv getHSV()
     {
         return cHSV;
@@ -79,42 +80,49 @@ public:
         cHSV.v = constrain(v, 0., 1.);
         updateRGB();
     }
+    void setHSV(hsv data)
+    {
+        cHSV.h = constrain(data.h, 0., 1.);
+        cHSV.s = constrain(data.s, 0., 1.);
+        cHSV.v = constrain(data.v, 0., 1.);
+        updateRGB();
+    }
 
     double getR() { return cRGB.r; }
     void setR(double r)
     {
-        cRGB.r = r;
+        cRGB.r = constrain(r, 0., 1.);
         updateHSV();
     }
     double getG() { return cRGB.g; }
     void setG(double g)
     {
-        cRGB.g = g;
+        cRGB.g = constrain(g, 0., 1.);
         updateHSV();
     }
     double getB() { return cRGB.b; }
     void setB(double b)
     {
-        cRGB.b = b;
+        cRGB.b = constrain(b, 0., 1.);
         updateHSV();
     }
 
     double getH() { return cHSV.h; }
     void setH(double h)
     {
-        cHSV.h = h;
+        cHSV.h = constrain(h, 0., 1.);
         updateRGB();
     }
     double getS() { return cHSV.s; }
     void setS(double s)
     {
-        cHSV.s = s;
+        cHSV.s = constrain(s, 0., 1.);
         updateRGB();
     }
     double getV() { return cHSV.v; }
     void setV(double v)
     {
-        cHSV.v = v;
+        cHSV.v = constrain(v, 0., 1.);
         updateRGB();
     }
 

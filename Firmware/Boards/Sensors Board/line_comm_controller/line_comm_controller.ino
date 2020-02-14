@@ -63,15 +63,17 @@ void setup()
 {
     Serial.begin(115200);
     configSerial.begin(9600);
-
+    
     pinMode(GREEN_SX, INPUT);
     pinMode(GREEN_DX, INPUT);
 
+    eepromManager.init();
     qtr.init();
     spi.init();
 
     spi.setAction(CAL_LINE, []() {
         qtr.calibrate();
+        qtr.printCalibrationValues();
     });
     spi.setAction(CAL_WHITE, []() {
         cfg.calibrateWhite = true;

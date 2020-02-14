@@ -6,7 +6,6 @@
 #include "libraries/utils.h"
 
 extern HardwareSerial Serial;
-SparkFun_APDS9960 apds;
 
 enum SensorColor
 {
@@ -16,7 +15,6 @@ enum SensorColor
     ALUMINIUM,
     NOT_RECOGNIZED
 };
-
 struct SensorData
 {
     double r;
@@ -148,18 +146,19 @@ public:
 private:
     uint8_t ledPin;
     uint8_t selectPin;
+    SparkFun_APDS9960 apds;
+
     SensorData values;
     Color color = Color((rgb){0, 0, 0});
+    threshold greenTresholds = {0.4, 0.5};
 
-    unsigned int calibrationTime = 5000;
-    float colorMultiplier = 5;
-    float AmbientMultipGreenMin = 50;
-    float AmbientMultipGreenMax = 250;
+    // unsigned int calibrationTime = 5000;
+    // float colorMultiplier = 5;
+    // float AmbientMultipGreenMin = 50;
+    // float AmbientMultipGreenMax = 250;
 
-    float ambienceMultiplier = 250;
-    double minimumRange = 2000. / 65535.;
-
-    threshold greenTresholds = {0,1};
+    // float ambienceMultiplier = 250;
+    // double minimumRange = 2000. / 65535.;
 
     // SensorData whiteRef = {0, 0, 0, 0};
     // SensorData greenRef = {0, 0, 0, 0};
@@ -197,7 +196,7 @@ private:
         color.setRGB(values.r, values.g, values.b);
     }
 
-    void calibrate(){}
+    void calibrate() {}
 
     // void calibrate(SensorData &ref, SensorData &rng)
     // {

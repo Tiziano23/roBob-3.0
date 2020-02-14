@@ -39,7 +39,7 @@ public:
     void setSpeed(double val)
     {
         speed = constrain(mode == INVERTED ? -val : val, -1, 1);
-        motor.writeMicroseconds(math::fMap(speed, -1, 1, zero - range, zero + range));
+        motor.writeMicroseconds(math::fmap(speed, -1, 1, zero - range, zero + range));
     }
     double getSpeed()
     {

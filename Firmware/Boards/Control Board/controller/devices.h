@@ -292,17 +292,17 @@ public:
         color.setS(s);
         applyColor();
     }
-    void setB(double b)
+    void setV(double v)
     {
-        color.setB(b);
+        color.setV(v);
         applyColor();
     }
-    void setHSB(int h, double s, double v)
+    void setHSV(double h, double s, double v)
     {
-        color.setHSV((float)h / 360., s, v);
+        color.setHSV(h, s, v);
         applyColor();
     }
-    void setHSB(hsv data)
+    void setHSV(hsv data)
     {
         color.setHSV(data.h, data.s, data.v);
         applyColor();
