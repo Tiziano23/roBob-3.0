@@ -101,10 +101,8 @@ public:
     }
     SensorColor getDiscreteColor()
     {
-        // if (greenHueTresholds.min < color.getH() && color.getH < greenHueTresholds.max)
-        // {
-
-        // }
+        if (greenRef - greenRng < color.getH() && color.getH() < greenRef + greenRng)
+            return GREEN;
 
         // if (
         //     (whiteRef.r - whiteRng.r < values.r && values.r < whiteRef.r + whiteRng.r) &&
@@ -150,9 +148,11 @@ private:
 
     SensorData values;
     Color color = Color((rgb){0, 0, 0});
-    threshold greenTresholds = {0.4, 0.5};
 
-    // unsigned int calibrationTime = 5000;
+    double greenRef = 0.45;
+    double greenRng = 0.10;
+
+    unsigned int calibrationTime = 5000;
     // float colorMultiplier = 5;
     // float AmbientMultipGreenMin = 50;
     // float AmbientMultipGreenMax = 250;
@@ -196,7 +196,18 @@ private:
         color.setRGB(values.r, values.g, values.b);
     }
 
-    void calibrate() {}
+    void calibrate() {
+        unsigned long startTime = millis();
+        double avg = 0;
+        unsigned int samples = 0;
+        while (millis() - startTime < calibrationTime)
+        {
+            readValues();
+            avg += color.getH();
+            samples++;
+        }
+        avg /= samples;
+    }
 
     // void calibrate(SensorData &ref, SensorData &rng)
     // {

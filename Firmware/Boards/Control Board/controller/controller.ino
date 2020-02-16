@@ -206,6 +206,7 @@ void setup()
     colorTest.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings:system-test"); }));
     colorTest.addItem(MenuItem("Toggle lights", []() {
         spi.execAction(TOGGLE_LIGHTS);
+        gui.drawActionCompleted();
     }));
     colorTest.addItem(MenuItem("Green recognition", []() {
         while (!keyboard.pressedOnce(MIDDLE))
@@ -218,8 +219,6 @@ void setup()
         }
     }));
     colorTest.addItem(MenuItem("Left color", []() {
-        d.clearDisplay();
-        d.display();
         while (!keyboard.pressedOnce(MIDDLE))
         {
             keyboard.update();
@@ -240,10 +239,9 @@ void setup()
             d.println("%");
             d.display();
         }
+        led.off();
     }));
     colorTest.addItem(MenuItem("Right color", []() {
-        d.clearDisplay();
-        d.display();
         while (!keyboard.pressedOnce(MIDDLE))
         {
             keyboard.update();
@@ -264,10 +262,20 @@ void setup()
             d.println("%");
             d.display();
         }
+        led.off();
     }));
 
     servoSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
     servoSettings.addItem(MenuItem("Move Forward", []() { movement.moveForward(1); }));
+    servoSettings.addItem(MenuItem("Calibrate turn", []() {
+        while (!keyboard.pressedOnce(MIDDLE))
+        {
+            keyboard.update();
+            movement.getLeftMotor().setSpeed(1);
+            movement.getRightMotor().setSpeed(-1);
+        }
+        movement.stop();
+    }));
     servoSettings.addItem(MenuItem("Left Servo", []() { gui.setActiveMenu("settings:servo-settings:left-servo"); }));
     servoSettings.addItem(MenuItem("Right Servo", []() { gui.setActiveMenu("settings:servo-settings:right-servo"); }));
 
@@ -338,6 +346,8 @@ void setup()
 
     gui.setActiveMenu("main-menu");
     gui.init();
+
+    led.setColor(RGBLed::BLUE);
 }
 
 void loop()
@@ -375,13 +385,6 @@ void followLine()
         bool greenSx, greenDx, aluminium;
         decodeColorData(colorData, greenSx, greenDx, aluminium);
 
-        if (greenSx)
-        {
-        }
-        if (greenDx)
-        {
-        }
-
         d.clearDisplay();
         d.setTextSize(2);
         d.setCursor(40, 0);
@@ -391,6 +394,26 @@ void followLine()
         d.print("  DX:");
         d.println(greenDx);
         d.display();
+
+        if (greenSx && greenDx)
+        {
+            led.setColor(RGBLed::GREEN);
+            movement.turnGreenBoth();
+        }
+        else if (greenSx)
+        {
+            led.setColor(RGBLed::GREEN);
+            movement.turnGreenLeft();
+        }
+        else if (greenDx)
+        {
+            led.setColor(RGBLed::GREEN);
+            movement.turnGreenRight();
+        }
+        else
+        {
+            led.setColor(RGBLed::BLUE);
+        }
     }
     movement.stop();
 }

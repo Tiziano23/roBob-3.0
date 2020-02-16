@@ -245,7 +245,7 @@ public:
     float getDist(unsigned long maxDistance)
     {
         unsigned long timeout = maxDistance * 58;
-        
+
         digitalWrite(trig_pin, HIGH);
         delayMicroseconds(10);
         digitalWrite(trig_pin, LOW);
@@ -272,9 +272,19 @@ private:
 class RGBLed
 {
 public:
+    enum color
+    {
+        RED,
+        BLUE,
+        GREEN,
+        YELLOW,
+        WHITE
+    };
+
     RGBLed(uint8_t r_pin, uint8_t g_pin, uint8_t b_pin) : r_pin(r_pin), g_pin(g_pin), b_pin(b_pin)
     {
     }
+
     void init()
     {
         pinMode(r_pin, OUTPUT);
@@ -282,6 +292,12 @@ public:
         pinMode(b_pin, OUTPUT);
         applyColor();
     }
+    void off()
+    {
+        color.setV(0);
+        applyColor();
+    }
+
     void setH(double h)
     {
         color.setH(h);
@@ -317,13 +333,35 @@ public:
         color.setRGB(data.r, data.g, data.b);
         applyColor();
     }
+    void setColor(color c)
+    {
+        switch (c)
+        {
+        case RED:
+            setHSV(0.0278, 1., 0.1);
+            break;
+        case YELLOW:
+            setHSV(0.1333, 1., 0.1);
+            break;
+        case GREEN:
+            setHSV(0.3556, 1., 0.1);
+            break;
+        case BLUE:
+            setHSV(0.6389, 1., 0.1);
+            break;
+        case WHITE:
+            setHSV(0., 0., 0.1);
+            break;
+        }
+        applyColor();
+    }
     Color &getColor() { return color; }
 
 private:
     uint8_t r_pin;
     uint8_t g_pin;
     uint8_t b_pin;
-    Color color = Color((hsv){0, 1, 0.1});
+    Color color = Color((rgb){0, 0, 0});
 
     void applyColor()
     {
