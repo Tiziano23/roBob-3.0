@@ -3,8 +3,9 @@
 #include <Wire.h>
 #include <SparkFun_APDS9960.h>
 
+#include "libraries/utils.h"
+
 extern HardwareSerial Serial;
-SparkFun_APDS9960 apds;
 
 enum SensorColor
 {
@@ -14,7 +15,6 @@ enum SensorColor
     ALUMINIUM,
     NOT_RECOGNIZED
 };
-
 struct SensorData
 {
     double r;
@@ -22,26 +22,6 @@ struct SensorData
     double b;
     uint16_t a;
 };
-struct SensorTresholds
-{
-    struct min_max
-    {
-        double min;
-        double max;
-    };
-    min_max h;
-    min_max s;
-    min_max v;
-};
-
-// struct SensorDataGreen
-// {
-//     double r;
-//     double g;
-//     double b;
-//     double minA;
-//     double maxA;
-// };
 
 class ColorSensor
 {
@@ -81,7 +61,6 @@ public:
     }
     void calibrateGreen()
     {
-        calibrate(greenTresholds);
         // calibrate(greenRef, greenRng);
     }
     void calibrateBlack()
@@ -120,12 +99,11 @@ public:
     {
         readValues();
     }
-    SensorData getValues()
-    {
-        return values;
-    }
     SensorColor getDiscreteColor()
     {
+        if (greenRef - greenRng < color.getH() && color.getH() < greenRef + greenRng)
+            return GREEN;
+
         // if (
         //     (whiteRef.r - whiteRng.r < values.r && values.r < whiteRef.r + whiteRng.r) &&
         //     (whiteRef.g - whiteRng.g < values.g && values.g < whiteRef.g + whiteRng.g) &&
@@ -153,81 +131,34 @@ public:
 
         return NOT_RECOGNIZED;
     }
+
+    SensorData getValues()
+    {
+        return values;
+    }
     Color getColor()
     {
         return color;
     }
 
-    // void printWhiteRef()
-    // {
-    //     Serial.print(F("White ref: { "));
-    //     Serial.print(F("r: "));
-    //     Serial.print(whiteRef.r * 100, 5);
-    //     Serial.print(F(", g: "));
-    //     Serial.print(whiteRef.g * 100, 5);
-    //     Serial.print(F(", b: "));
-    //     Serial.print(whiteRef.b * 100, 5);
-    //     Serial.print(F(", a: "));
-    //     Serial.print(whiteRef.a * 100, 5);
-    //     Serial.println(F(" }"));
-    // }
-    // void printWhiteRng()
-    // {
-    //     Serial.print(F("White rng: { "));
-    //     Serial.print(F("r: "));
-    //     Serial.print(whiteRng.r * 100, 5);
-    //     Serial.print(F(", g: "));
-    //     Serial.print(whiteRng.g * 100, 5);
-    //     Serial.print(F(", b: "));
-    //     Serial.print(whiteRng.b * 100, 5);
-    //     Serial.print(F(", a: "));
-    //     Serial.print(whiteRng.a * 100, 5);
-    //     Serial.println(F(" }"));
-    // }
-    // void printGreenRef()
-    // {
-    //     Serial.print(F("Green ref: { "));
-    //     Serial.print(F("r: "));
-    //     Serial.print(greenRef.r * 100, 5);
-    //     Serial.print(F(", g: "));
-    //     Serial.print(greenRef.g * 100, 5);
-    //     Serial.print(F(", b: "));
-    //     Serial.print(greenRef.b * 100, 5);
-    //     Serial.print(F(", a: "));
-    //     Serial.print(greenRef.a * 100, 5);
-    //     Serial.println(F(" }"));
-    // }
-    // void printGreenRng()
-    // {
-    //     Serial.print(F("Green rng: { "));
-    //     Serial.print(F("r: "));
-    //     Serial.print(greenRng.r * 100, 5);
-    //     Serial.print(F(", g: "));
-    //     Serial.print(greenRng.g * 100, 5);
-    //     Serial.print(F(", b: "));
-    //     Serial.print(greenRng.b * 100, 5);
-    //     Serial.print(F(", Min a: "));
-    //     Serial.print(greenRng.minA * 100, 5);
-    //     Serial.print(F(", Max a: "));
-    //     Serial.print(greenRng.maxA * 100, 5);
-    //     Serial.println(F(" }"));
-    // }
-
 private:
     uint8_t ledPin;
     uint8_t selectPin;
+    SparkFun_APDS9960 apds;
+
     SensorData values;
     Color color = Color((rgb){0, 0, 0});
 
+    double greenRef = 0.45;
+    double greenRng = 0.10;
+
     unsigned int calibrationTime = 5000;
-    float colorMultiplier = 5;
-    float AmbientMultipGreenMin = 50;
-    float AmbientMultipGreenMax = 250;
+    // float colorMultiplier = 5;
+    // float AmbientMultipGreenMin = 50;
+    // float AmbientMultipGreenMax = 250;
 
-    float ambienceMultiplier = 250;
-    double minimumRange = 2000. / 65535.;
-
-    SensorTresholds greenTresholds;
+    // float ambienceMultiplier = 250;
+    // double minimumRange = 2000. / 65535.;
 
     // SensorData whiteRef = {0, 0, 0, 0};
     // SensorData greenRef = {0, 0, 0, 0};
@@ -265,9 +196,17 @@ private:
         color.setRGB(values.r, values.g, values.b);
     }
 
-    void calibrate(SensorTresholds t)
-    {
-        
+    void calibrate() {
+        unsigned long startTime = millis();
+        double avg = 0;
+        unsigned int samples = 0;
+        while (millis() - startTime < calibrationTime)
+        {
+            readValues();
+            avg += color.getH();
+            samples++;
+        }
+        avg /= samples;
     }
 
     // void calibrate(SensorData &ref, SensorData &rng)
@@ -372,19 +311,18 @@ private:
 class ColorManager
 {
 public:
-    ColorManager(int left_enable, int left_led, int right_enable, int right_led)
+    ColorManager(uint8_t left_enable, uint8_t left_led, uint8_t right_enable, uint8_t right_led)
     {
         sxSensor = ColorSensor(left_enable, left_led);
         dxSensor = ColorSensor(right_enable, right_led);
     }
+
     void init()
     {
         sxSensor.init();
-        dxSensor.init();
-
         sxSensor.lightsOn();
+        dxSensor.init();
         dxSensor.lightsOn();
-
         loadCalibration();
     }
     void measure()

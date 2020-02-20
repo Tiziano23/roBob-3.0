@@ -6,7 +6,8 @@
 #include "devices.h"
 
 // Servos Costants ---------------//
-#define TURN_SPEED 14.28 // °/s
+#define M_PER_SECOND_FULL_SPEED 0.210526316   // m/s
+#define DEG_PER_SECOND_FULL_SPEED 90.04783149 // °/s
 //--------------------------------//
 
 enum ServoMode
@@ -39,7 +40,7 @@ public:
     void setSpeed(double val)
     {
         speed = constrain(mode == INVERTED ? -val : val, -1, 1);
-        motor.writeMicroseconds(math::fMap(speed, -1, 1, zero - range, zero + range));
+        motor.writeMicroseconds(math::fmap(speed, -1, 1, zero - range, zero + range));
     }
     double getSpeed()
     {
@@ -84,9 +85,8 @@ class MovementInterface
 public:
     void init()
     {
-        pidController.SetOutputLimits(-1, 1);
         pidController.SetMode(AUTOMATIC);
-
+        pidController.SetOutputLimits(-1, 1);
         leftMotor.setZeroValue(1500);
         rightMotor.setZeroValue(1504);
     }
@@ -123,51 +123,41 @@ public:
     {
         movementSpeed = speed;
     }
-    double getSpeed()
+    double getSpeed() { return movementSpeed; }
+    void setSpeedMultiplier(double multiplier)
     {
-        return movementSpeed;
+        speedMultiplier = multiplier;
     }
+    double getSpeedMultiplier() { return speedMultiplier; }
 
     void setKp(double _Kp)
     {
         Kp = _Kp;
         pidController.SetTunings(Kp, Ki, Kd);
     }
-    double getKp()
-    {
-        return Kp;
-    }
+    double getKp() { return Kp; }
     void setKi(double _Ki)
     {
         Ki = _Ki;
         pidController.SetTunings(Kp, Ki, Kd);
     }
-    double getKi()
-    {
-        return Ki;
-    }
+    double getKi() { return Ki; }
     void setKd(double _Kd)
     {
         Kd = _Kd;
         pidController.SetTunings(Kp, Ki, Kd);
     }
-    double getKd()
-    {
-        return Kd;
-    }
+    double getKd() { return Kd; }
 
     void followLine()
     {
-        pidController.SetMode(AUTOMATIC);
         PIDInput = linePosition;
         pidController.Compute();
-        leftMotor.setSpeed(calcLeftMotorSpeed(PIDOutput, movementSpeed));
-        rightMotor.setSpeed(calcRightMotorSpeed(PIDOutput, movementSpeed));
+        leftMotor.setSpeed(calcLeftMotorSpeed(PIDOutput, movementSpeed * speedMultiplier, 1));
+        rightMotor.setSpeed(calcRightMotorSpeed(PIDOutput, movementSpeed * speedMultiplier, 1));
     }
-
     void stop()
     {
-        pidController.SetMode(MANUAL);
         leftMotor.setSpeed(0);
         rightMotor.setSpeed(0);
     }
@@ -175,122 +165,89 @@ public:
     {
         leftMotor.setSpeed(movementSpeed);
         rightMotor.setSpeed(movementSpeed);
-
-        // double deltaTime = 0;
-        // unsigned long lastTime = millis();
-        double speed = 0, distanceTravelled = 0;
-        while (distanceTravelled < distance)
-        {
-            // deltaTime = (double)(millis() - lastTime) / 1000;
-            // lastTime = millis();
-            accelGyro->update();
-            speed += accelGyro->getAcceleration().xyDist();
-            distanceTravelled += speed;
-            d.clearDisplay();
-            d.setCursor(0, 0);
-            d.print("v: ");
-            d.println(speed);
-            d.print("s: ");
-            d.println(distanceTravelled);
-            d.display();
-        }
+        unsigned long startTime = millis();
+        while (millis() - startTime < (distance / (movementSpeed * M_PER_SECOND_FULL_SPEED)) * 1000)
+            ;
         stop();
+        // double speed = 0, distanceTravelled = 0;
+        // while (distanceTravelled < distance)
+        // {
+        //     accelGyro->update();
+        //     speed += accelGyro->getAcceleration().xyDist();
+        //     distanceTravelled += speed;
+        //     d.clearDisplay();
+        //     d.setCursor(0, 0);
+        //     d.print("v: ");
+        //     d.println(speed);
+        //     d.print("s: ");
+        //     d.println(distanceTravelled);
+        //     d.display();
+        // }
     }
     void moveBackwards(double distance)
     {
-        leftMotor.setSpeed(-movementSpeed);
-        rightMotor.setSpeed(-movementSpeed);
-
-        stop();
-    }
-    void turnAngle(float angle)
-    {
+        leftMotor.setSpeed(movementSpeed);
+        rightMotor.setSpeed(movementSpeed);
         unsigned long startTime = millis();
-        leftMotor.setSpeed(0.7 * math::sign(angle));
-        rightMotor.setSpeed(0.7 * math::sign(angle));
-        while (millis() - startTime < abs(angle) * TURN_SPEED)
+        while (millis() - startTime < (distance / (movementSpeed * M_PER_SECOND_FULL_SPEED)) * 1000)
             ;
         stop();
     }
-    void turnGreenSX()
+    void turnByAngle(float angle)
     {
+        unsigned long startTime = millis();
+        leftMotor.setSpeed(0.7 * math::sign(angle));
+        rightMotor.setSpeed(0.7 * -math::sign(angle));
+        while (millis() - startTime < abs(angle) / (0.7 * DEG_PER_SECOND_FULL_SPEED) * 1000)
+            ;
         stop();
-        moveForward(1250);
-        turnAngle(45);
-        // if (lastGreenSX)
-        // {
-        //     turnAngle(15);
-        //     moveForward(1000);
-        //     reset();
-        // }
-        // else
-        // {
-        //     moveForward(300);
-        //     setVelocity(17);
-        //     setTurnVelocity(35);
-        //     setOffset(-25);
-        // }
-        // lastGreenSX = !lastGreenSX;
-        // lastGreenTime = millis();
     }
-    void turnGreenDX()
+    void turnGreenLeft()
     {
         stop();
-        moveForward(1250);
-        turnAngle(-45);
-        // if (lastGreenDX)
-        // {
-        //     turnAngle(-15);
-        //     moveForward(1250);
-        //     reset();
-        // }
-        // else
-        // {
-        //     moveForward(300);
-        //     setVelocity(17);
-        //     setTurnVelocity(35);
-        //     setOffset(20);
-        // }
-        // lastGreenDX = !lastGreenDX;
-        // lastGreenTime = millis();
+        delay(750);
+        moveForward(0.075);
+        turnByAngle(-80);
+    }
+    void turnGreenRight()
+    {
+        stop();
+        delay(750);
+        moveForward(0.075);
+        turnByAngle(80);
     }
     void turnGreenBoth()
     {
-        stop();
-        turnAngle(180);
-        moveBackwards(300);
+        turnByAngle(180);
     }
 
 private:
-    double movementSpeed = 0.50;
-    double linePosition = 0;
+    double movementSpeed = 0.35;
+    double speedMultiplier = 1;
+    double Kp = 2.500;
+    double Ki = 0.000;
+    double Kd = 0.100;
 
     double PIDInput = 0;
     double PIDOutput = 0;
     double PIDSetpoint = 0;
-
-    double Kp = 2.650;
-    double Ki = 2.000;
-    double Kd = 0.350;
+    double linePosition = 0;
 
     PID pidController = PID(&PIDInput, &PIDOutput, &PIDSetpoint, Kp, Ki, Kd, DIRECT);
     ServoMotor leftMotor = ServoMotor(INVERTED);
     ServoMotor rightMotor = ServoMotor();
     GyroscopeAccelerometer *accelGyro;
 
-    double calcLeftMotorSpeed(double x, double v)
+    double calcLeftMotorSpeed(double x, double v, double n)
     {
         if (x >= 0)
-            return -pow(x, 1) * (1 + v) + v;
+            return -pow(x, n) * (1 + v) + v;
         else
-            return pow(-x, 1) * (1 - v) + v;
+            return pow(-x, n) * (1 - v) + v;
     }
-    double calcRightMotorSpeed(double x, double v)
+    double calcRightMotorSpeed(double x, double v, double n)
     {
-        if (x >= 0)
-            return pow(x, 1) * (1 - v) + v;
-        else
-            return -pow(-x, 1) * (1 + v) + v;
+        return calcLeftMotorSpeed(-x, v, n);
     }
 };
 
@@ -388,7 +345,7 @@ private:
 //       delay(time);
 //       this->stop();
 //     }
-//     void turnAngle(float angle) {
+//     void turnByAngle(float angle) {
 //       int sign = angle > 0 ? 1 : -1;
 //       unsigned long startTime = millis();
 //       this->leftMotor.writeMicroseconds(1500 + (sign * 70));
@@ -424,9 +381,9 @@ private:
 //       if (this->lastGreenDX)return;
 //       this->stop();
 //       this->moveForward(1250);
-//       this->turnAngle(45);
+//       this->turnByAngle(45);
 //       if (this->lastGreenSX) {
-//         this->turnAngle(15);
+//         this->turnByAngle(15);
 //         this->moveForward(1000);
 //         this->reset();
 //       } else {
@@ -443,9 +400,9 @@ private:
 //       if (this->lastGreenSX)return;
 //       this->stop();
 //       this->moveForward(1250);
-//       this->turnAngle(-45);
+//       this->turnByAngle(-45);
 //       if (this->lastGreenDX) {
-//         this->turnAngle(-15);
+//         this->turnByAngle(-15);
 //         this->moveForward(1250);
 //         this->reset();
 //       } else {
@@ -459,7 +416,7 @@ private:
 //     }
 //     void turnGreenBoth() {
 //       this->stop();
-//       this->turnAngle(180);
+//       this->turnByAngle(180);
 //       this->moveBackwards(300);
 //       if (this->lastGreenSX || this->lastGreenDX) {
 //         this->reset();

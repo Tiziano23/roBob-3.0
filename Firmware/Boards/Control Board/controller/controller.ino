@@ -55,11 +55,13 @@
 #define TOGGLE_RIGHT_COLOR 0x07
 //--------------------------------//
 
+#include "libraries/spi/spi_interface_master.h"
+#include "libraries/eepromManager.h"
+
 #include "navigation_manager.h"
 #include "devices.h"
 #include "gui_manager.h"
 #include "movement_interface.h"
-#include "libraries/spi/spi_interface_master.h"
 
 extern HardwareSerial Serial;
 
@@ -96,20 +98,24 @@ GyroscopeAccelerometer accelGyro;
 
 void setup()
 {
+    Wire.begin();
     Serial.begin(115200);
+    
+    eepromManager.init();
+
+    gui.init();
+    gui.boot();
 
     spi.init();
     led.init();
     buzzer.init();
     keyboard.init();
     movement.init();
+
+    gui.printGyroscopeCalibrationMessage();    
     accelGyro.init();
 
-    // US_N.init();
-    // US_NW.init();
-    // US_NE.init();
-    // US_SW.init();
-    // US_SE.init();
+    led.setColor(RGBLed::BLUE);
 
     movement.attachLeftMotor(SERVO_LEFT);
     movement.attachRightMotor(SERVO_RIGHT);
@@ -145,49 +151,67 @@ void setup()
     settings.addItem(MenuItem("Servo Settings", []() { gui.setActiveMenu("settings:servo-settings"); }));
     settings.addItem(MenuItem("PID Settings", []() { gui.setActiveMenu("settings:pid-settings"); }));
     settings.addItem(MenuItem("LED Settings", []() { gui.setActiveMenu("settings:led-settings"); }));
-
-    systemTest.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
-    systemTest.addItem(MenuItem("Color Sensors", []() { gui.setActiveMenu("settings:system-test:color"); }));
-    systemTest.addItem(MenuItem("Accelerometer", []() {
+    settings.addItem(MenuItem("Accelerometer", []() {
         while (!keyboard.pressedOnce(MIDDLE))
         {
             keyboard.update();
             accelGyro.update();
-            math::Vector3f accel = accelGyro.getAcceleration();
             d.clearDisplay();
             d.setTextSize(1);
             d.setCursor(0, 0);
             d.println("Accel: {");
             d.print("x: ");
-            d.println(accel.x);
-            d.print("y: ");
-            d.println(accel.y);
-            d.print("z: ");
-            d.println(accel.z);
-            d.println(" }");
+            d.print(accelGyro.getWorldAcceleration().x / 1000);
+            d.print("m/ss\ny: ");
+            d.print(accelGyro.getWorldAcceleration().y / 1000);
+            d.print("m/ss\nz: ");
+            d.print(accelGyro.getWorldAcceleration().z / 1000);
+            d.println("m/ss }");
             d.display();
         }
     }));
-    systemTest.addItem(MenuItem("Gyroscope", []() {
+    settings.addItem(MenuItem("Gyroscope", []() {
         while (!keyboard.pressedOnce(MIDDLE))
         {
             keyboard.update();
             accelGyro.update();
-            math::Vector3f rot = accelGyro.getRotation();
+
+            if (keyboard.pressedOnce(RIGHT))
+                accelGyro.registerOffset();
+
             d.clearDisplay();
             d.setTextSize(1);
             d.setCursor(0, 0);
             d.println("Gyro: {");
             d.print("x: ");
-            d.println(rot.x);
-            d.print("y: ");
-            d.println(rot.y);
-            d.print("z: ");
-            d.println(rot.z);
-            d.println(" }");
+            d.print((int)(accelGyro.getRotation().x * RAD_TO_DEG));
+            d.print("deg\ny: ");
+            d.print((int)(accelGyro.getRotation().y * RAD_TO_DEG));
+            d.print("deg\nz: ");
+            d.print((int)(accelGyro.getRotation().z * RAD_TO_DEG));
+            d.println("deg }");
+
+            d.setCursor(90, 24);
+            d.print("Calib.");
+
             d.display();
         }
     }));
+
+    systemTest.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
+    systemTest.addItem(MenuItem("Line Sensors", []() {
+        while (!keyboard.pressedOnce(MIDDLE))
+        {
+            keyboard.update();
+            double line = spi.requestData<double>(LINE);
+            d.clearDisplay();
+            d.setTextSize(2);
+            d.setCursor(40, 0);
+            d.println(line, 3);
+            d.display();
+        }
+    }));
+    systemTest.addItem(MenuItem("Color Sensors", []() { gui.setActiveMenu("settings:system-test:color"); }));
     systemTest.addItem(MenuItem("Left Servo", []() {
         gui.numberDialog<float>(0, -1, 1, 0.01, keyboard, Percentual, [](float n) { movement.getLeftMotor().setSpeed(n); });
         movement.getLeftMotor().setSpeed(0);
@@ -200,6 +224,7 @@ void setup()
     colorTest.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings:system-test"); }));
     colorTest.addItem(MenuItem("Toggle lights", []() {
         spi.execAction(TOGGLE_LIGHTS);
+        gui.drawActionCompleted();
     }));
     colorTest.addItem(MenuItem("Green recognition", []() {
         while (!keyboard.pressedOnce(MIDDLE))
@@ -212,39 +237,36 @@ void setup()
         }
     }));
     colorTest.addItem(MenuItem("Left color", []() {
-        d.clearDisplay();
-        d.display();
         while (!keyboard.pressedOnce(MIDDLE))
         {
             keyboard.update();
             hsv data = spi.requestData<hsv>(LEFT_COLOR_DATA);
-            led.setH(data.h);
-            led.setS(data.s * 2);
+            led.setH(data.h - 0.1);
+            led.setS(math::fmap(data.s, 0.46, 0.51, 0, 1));
             led.setV(0.1);
 
             d.clearDisplay();
             d.setCursor(0, 0);
             d.setTextSize(1);
             d.print("h: ");
-            d.print(data.h * 100, 5);
+            d.print(data.h * 100., 5);
             d.print("%\ns: ");
-            d.print(data.s * 100, 5);
+            d.print(data.s * 100., 5);
             d.print("%\nv: ");
-            d.print(data.v * 100, 5);
+            d.print(data.v * 100., 5);
             d.println("%");
             d.display();
         }
+        led.off();
     }));
     colorTest.addItem(MenuItem("Right color", []() {
-        d.clearDisplay();
-        d.display();
         while (!keyboard.pressedOnce(MIDDLE))
         {
             keyboard.update();
             hsv data = spi.requestData<hsv>(RIGHT_COLOR_DATA);
-            led.setH(data.h);
-            led.setS(data.s * 2);
-            led.setV(0.1);
+            led.setH(data.h - 0.1);
+            led.setS(math::fmap(data.s, 0.46, 0.51, 0, 1));
+            led.setV(0.05);
 
             d.clearDisplay();
             d.setCursor(0, 0);
@@ -258,10 +280,20 @@ void setup()
             d.println("%");
             d.display();
         }
+        led.off();
     }));
 
     servoSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
     servoSettings.addItem(MenuItem("Move Forward", []() { movement.moveForward(1); }));
+    servoSettings.addItem(MenuItem("Calibrate turn", []() {
+        while (!keyboard.pressedOnce(MIDDLE))
+        {
+            keyboard.update();
+            movement.getLeftMotor().setSpeed(1);
+            movement.getRightMotor().setSpeed(-1);
+        }
+        movement.stop();
+    }));
     servoSettings.addItem(MenuItem("Left Servo", []() { gui.setActiveMenu("settings:servo-settings:left-servo"); }));
     servoSettings.addItem(MenuItem("Right Servo", []() { gui.setActiveMenu("settings:servo-settings:right-servo"); }));
 
@@ -331,12 +363,11 @@ void setup()
     gui.addMenu(&ledSettings);
 
     gui.setActiveMenu("main-menu");
-    gui.init();
+    gui.drawActiveMenu();
 }
 
 void loop()
 {
-    accelGyro.update();
     keyboard.update();
     if (!keyboard.isConnected())
         followLine();
@@ -360,31 +391,50 @@ void followLine()
     while (!keyboard.pressedOnce(MIDDLE))
     {
         keyboard.update();
+        accelGyro.update();
 
         double line = spi.requestData<double>(LINE);
         movement.setLinePosition(line);
-        movement.followLine();
 
         byte colorData = spi.requestData<byte>(COLOR);
-        bool greenSx, greenDx, aluminium;
-        decodeColorData(colorData, greenSx, greenDx, aluminium);
+        bool greenLeft, greenRight, aluminium;
+        decodeColorData(colorData, greenLeft, greenRight, aluminium);
+        
+        movement.followLine();
 
-        if (greenSx)
+        if (greenLeft && greenRight)
         {
+            led.setColor(RGBLed::GREEN);
+            movement.turnGreenBoth();
         }
-        if (greenDx)
+        else if (greenLeft)
         {
+            led.setColor(RGBLed::GREEN);
+            movement.turnGreenLeft();
+        }
+        else if (greenRight)
+        {
+            led.setColor(RGBLed::GREEN);
+            movement.turnGreenRight();
+        }
+        else
+        {
+            led.setColor(RGBLed::BLUE);
         }
 
-        d.clearDisplay();
-        d.setTextSize(2);
-        d.setCursor(40, 0);
-        d.println(line);
-        d.print("SX:");
-        d.print(greenSx);
-        d.print("  DX:");
-        d.println(greenDx);
-        d.display();
+        if (10 * DEG_TO_RAD <= abs(accelGyro.getRotation().y) && abs(accelGyro.getRotation().y) <= 30 * DEG_TO_RAD)
+        {
+            if (math::sign(accelGyro.getRotation().y) > 0 && movement.getSpeedMultiplier() != 2)
+                movement.setSpeedMultiplier(2);
+            if (math::sign(accelGyro.getRotation().y) < 0 && movement.getSpeedMultiplier() != 0.5)
+                movement.setSpeedMultiplier(0.5);
+        }
+        else if (movement.getSpeedMultiplier() != 1)
+        {
+            movement.setSpeedMultiplier(1);
+        }
+
+        gui.lineFollowerGui(line, greenLeft, greenRight);
     }
     movement.stop();
 }

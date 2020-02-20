@@ -1,7 +1,6 @@
 #pragma once
 
-#include <I2Cdev.h>
-#include <MPU6050.h>
+#include <MPU6050_6Axis_MotionApps_V6_12.h>
 
 #include "libraries/math.h"
 #include "libraries/utils.h"
@@ -44,7 +43,7 @@ public:
             pressed = false;
         }
     }
-    byte getPin()
+    uint8_t getPin()
     {
         return pin;
     }
@@ -148,29 +147,53 @@ class GyroscopeAccelerometer
 {
 public:
     GyroscopeAccelerometer() {}
+    GyroscopeAccelerometer(uint8_t interruptPin) : intPin(interruptPin) {}
 
     void init()
     {
-        Wire.begin();
         mpu6050.initialize();
-        // if (!mpu6050.testConnection()) error;
+        mpu6050.dmpInitialize();
         calibrate();
+        mpu6050.setDMPEnabled(true);
+
+        loadData();
     }
 
     void calibrate()
     {
-        // mpu6050.CalibrateAccel();
-        // mpu6050.CalibrateGyro();
+        mpu6050.CalibrateAccel(6);
+        mpu6050.CalibrateGyro(6);
     }
 
     void update()
     {
-        deltaTime = (double)(millis() - lastUpdate) / 1000;
-        lastUpdate = millis();
+        if (mpu6050.dmpPacketAvailable())
+        {
+            if (mpu6050.dmpGetCurrentFIFOPacket(dataBuffer))
+            {
+                Quaternion q;
+                VectorInt16 a, linearAcc, worldAcc;
+                VectorFloat g;
+                mpu6050.dmpGetQuaternion(&q, dataBuffer);
 
-        gyroscope += getSensorRotationVelocity() * deltaTime;
-        acceleation = getSensorAcceleration();
-        rotation = calcRotation();
+                float rot[3];
+                mpu6050.dmpGetEuler(rot, &q);
+                rotation = math::Vector3f(rot[0], rot[1], rot[2]) - offsetGyro;
+
+                mpu6050.dmpGetAccel(&a, dataBuffer);
+                mpu6050.dmpGetGravity(&g, &q);
+                mpu6050.dmpGetLinearAccel(&linearAcc, &a, &g);
+                acceleation = math::Vector3f(linearAcc.x, linearAcc.y, linearAcc.z);
+                mpu6050.dmpGetLinearAccelInWorld(&worldAcc, &linearAcc, &q);
+                worldAcceleration = math::Vector3f(worldAcc.x, worldAcc.y, worldAcc.z) - offsetAccel;
+            }
+        }
+    }
+
+    void registerOffset()
+    {
+        offsetGyro = rotation + offsetGyro;
+        saveData();
     }
 
     math::Vector3f getRotation()
@@ -183,53 +206,44 @@ public:
         return acceleation;
     }
 
+    math::Vector3f getWorldAcceleration()
+    {
+        return worldAcceleration;
+    }
+
 private:
-    unsigned long long lastUpdate;
-    double deltaTime = 0;
+    MPU6050 mpu6050;
+    uint8_t intPin;
+
+    uint8_t dataBuffer[32];
 
     math::Vector3f rotation;
-
-    math::Vector3f gyroscope;
     math::Vector3f acceleation;
+    math::Vector3f worldAcceleration;
 
-    MPU6050 mpu6050;
+    math::Vector3f offsetGyro;
+    math::Vector3f offsetAccel;
 
-    math::Vector3f calcRotation()
-    {
-        math::Vector3f gyroAngle(gyroscope.x, gyroscope.y, gyroscope.z);
-        math::Vector3f accelAngle;
-        accelAngle.x = atan(+acceleation.x / sqrt(pow(acceleation.x, 2) + pow(acceleation.z, 2)));
-        accelAngle.y = atan(-acceleation.x / sqrt(pow(acceleation.y, 2) + pow(acceleation.z, 2)));
-        accelAngle.z = atan(+acceleation.z / sqrt(pow(acceleation.x, 2) + pow(acceleation.y, 2)));
-        return gyroAngle * 0.96 + accelAngle * 0.04;
-    }
-
-    math::Vector3f getRawSensorRotationVelocity()
+    math::Vector3f getRawSensorAngularVelocity()
     {
         int16_t xVal, yVal, zVal;
         mpu6050.getRotation(&xVal, &yVal, &zVal);
-        return math::Vector3f(xVal, yVal, zVal) / 131 * MATH_toRadians;
-    }
-    math::Vector3f getSensorRotationVelocity()
-    {
-        int16_t xVal, yVal, zVal;
-        mpu6050.getRotation(&xVal, &yVal, &zVal);
-        return math::Vector3f(xVal, yVal, zVal) / 131 * MATH_toRadians;
+        return math::Vector3f(xVal, yVal, zVal) / 131 * DEG_TO_RAD;
     }
     math::Vector3f getRawSensorAcceleration()
     {
         int16_t xVal, yVal, zVal;
         mpu6050.getAcceleration(&xVal, &yVal, &zVal);
-        return math::Vector3f(xVal, yVal, zVal) / 16384 * MATH_g;
+        return math::Vector3f(xVal, yVal, zVal) / 16384 * 9.81;
     }
-    math::Vector3f getSensorAcceleration()
-    {
-        int16_t xVal, yVal, zVal;
-        mpu6050.getAcceleration(&xVal, &yVal, &zVal);
 
-        math::Vector3f g = math::Vector3f(0, 0, 1);
-        math::Vector3f a = (math::Vector3f(xVal, yVal, zVal) / 16384 - g) * MATH_g;
-        return a;
+    void loadData()
+    {
+        eepromManager.get(10, offsetGyro);
+    }
+    void saveData()
+    {
+        eepromManager.put(10, offsetGyro);
     }
 };
 
@@ -245,7 +259,7 @@ public:
     float getDist(unsigned long maxDistance)
     {
         unsigned long timeout = maxDistance * 58;
-        
+
         digitalWrite(trig_pin, HIGH);
         delayMicroseconds(10);
         digitalWrite(trig_pin, LOW);
@@ -272,9 +286,19 @@ private:
 class RGBLed
 {
 public:
+    enum color
+    {
+        RED,
+        BLUE,
+        GREEN,
+        YELLOW,
+        WHITE
+    };
+
     RGBLed(uint8_t r_pin, uint8_t g_pin, uint8_t b_pin) : r_pin(r_pin), g_pin(g_pin), b_pin(b_pin)
     {
     }
+
     void init()
     {
         pinMode(r_pin, OUTPUT);
@@ -282,6 +306,12 @@ public:
         pinMode(b_pin, OUTPUT);
         applyColor();
     }
+    void off()
+    {
+        color.setV(0);
+        applyColor();
+    }
+
     void setH(double h)
     {
         color.setH(h);
@@ -297,9 +327,9 @@ public:
         color.setV(v);
         applyColor();
     }
-    void setHSV(int h, double s, double v)
+    void setHSV(double h, double s, double v)
     {
-        color.setHSV((float)h / 360., s, v);
+        color.setHSV(h, s, v);
         applyColor();
     }
     void setHSV(hsv data)
@@ -317,13 +347,35 @@ public:
         color.setRGB(data.r, data.g, data.b);
         applyColor();
     }
+    void setColor(color c)
+    {
+        switch (c)
+        {
+        case RED:
+            setHSV(0.0278, 1., 0.1);
+            break;
+        case YELLOW:
+            setHSV(0.1333, 1., 0.1);
+            break;
+        case GREEN:
+            setHSV(0.3556, 1., 0.1);
+            break;
+        case BLUE:
+            setHSV(0.6389, 1., 0.1);
+            break;
+        case WHITE:
+            setHSV(0., 0., 0.1);
+            break;
+        }
+        applyColor();
+    }
     Color &getColor() { return color; }
 
 private:
     uint8_t r_pin;
     uint8_t g_pin;
     uint8_t b_pin;
-    Color color = Color((hsv){0, 1, 0.1});
+    Color color = Color((rgb){0, 0, 0});
 
     void applyColor()
     {

@@ -220,13 +220,9 @@ public:
     void draw()
     {
         if (abs(scrollLeft - smoothScrollLeft) > 1)
-        {
             smoothScrollLeft += (scrollLeft - smoothScrollLeft) / 4;
-        }
         else
-        {
             smoothScrollLeft = scrollLeft;
-        }
         d.clearDisplay();
         for (int i = 0; i < length; i++)
         {
@@ -284,36 +280,68 @@ public:
         d.setTextSize(1);
         d.setTextColor(WHITE);
         clearDisplay();
-        boot();
-        drawActiveMenu();
     }
     void boot()
     {
-        printMessage("ro_BOB 2.0", 6, 12, 2);
-        // repeatFor(1000, [](int deltaTime) {
-        //     double brightness = sin((TWO_PI / 500) * (float)deltaTime) + 1.0 / 2.0;
-        //     d.ssd1306_command(SSD1306_SETCONTRAST);
-        //     d.ssd1306_command(brightness * 255);
-        //     d.ssd1306_command(SSD1306_SETVCOMDETECT);
-        //     d.ssd1306_command(brightness * 40);
-        //     d.ssd1306_command(SSD1306_SETPRECHARGE);
-        //     d.ssd1306_command(brightness * 241);
-        // });
-        // d.ssd1306_command(SSD1306_SETCONTRAST);
-        // d.ssd1306_command(0xFF);
-        // d.ssd1306_command(SSD1306_SETVCOMDETECT);
-        // d.ssd1306_command(0x40);
-        // d.ssd1306_command(SSD1306_SETPRECHARGE);
-        // d.ssd1306_command(0x22);
-        clearDisplay();
-        delay(500);
+        double pos = 39;
+        double speed = 95;
+        bool updateBrightness = true;
+
+        d.clearDisplay();
+        printLineText("ro_Bob 3.0", 6, 4, 2);
+        d.display();
+
+        d.ssd1306_command(SSD1306_SETCONTRAST);
+        d.ssd1306_command(0);
+        d.ssd1306_command(SSD1306_SETVCOMDETECT);
+        d.ssd1306_command(0);
+        d.ssd1306_command(SSD1306_SETPRECHARGE);
+        d.ssd1306_command(0);
+        repeatFor(3000, [&](double t, double dt) {
+            if (updateBrightness)
+            {
+                double brightness = sin(M_PI_2 * t / 1.65);
+                if (brightness > 0.9)
+                {
+                    brightness = 1;
+                    updateBrightness = false;
+                }
+                d.ssd1306_command(SSD1306_SETCONTRAST);
+                d.ssd1306_command(brightness * 255);
+                d.ssd1306_command(SSD1306_SETVCOMDETECT);
+                d.ssd1306_command(brightness * 64);
+                d.ssd1306_command(SSD1306_SETPRECHARGE);
+                d.ssd1306_command(brightness * 34);
+            }
+
+            pos += speed * dt;
+            if (pos < 39 || pos > 89)
+                speed *= -1;
+
+            clearRect(0, 22, 128, 10);
+            for (int i = 39; i <= 89; i++)
+            {
+                if ((i - 39) % 8 == 0)
+                {
+                    double s = abs(i - pos) > 1 ? 1 / sq((i - pos) / 16) : 3;
+                    d.fillCircle(i, 28, constrain(floor(s), 1, 3), WHITE);
+                }
+            }
+            d.display();
+        });
+
+        d.ssd1306_command(SSD1306_SETCONTRAST);
+        d.ssd1306_command(0xFF);
+        d.ssd1306_command(SSD1306_SETVCOMDETECT);
+        d.ssd1306_command(0x40);
+        d.ssd1306_command(SSD1306_SETPRECHARGE);
+        d.ssd1306_command(0x22);
     }
 
     void addMenu(Menu *menu)
     {
         menus.push(menu);
     }
-
     Menu *getActiveMenu()
     {
         return activeMenu;
@@ -344,6 +372,19 @@ public:
     bool selectPreviousItem()
     {
         return activeMenu->selectPreviousItem();
+    }
+
+    void lineFollowerGui(double linePosition, bool greenLeft, bool greenRight)
+    {
+        d.clearDisplay();
+        d.setTextSize(2);
+        d.setCursor(40, 0);
+        d.println(linePosition, 4);
+        d.print("SX:");
+        d.print(greenLeft);
+        d.print("  DX:");
+        d.println(greenRight);
+        d.display();
     }
 
     template <class T>
@@ -417,7 +458,7 @@ public:
         drawActionCompleted();
         return newVal;
     }
-    void colorCalibrationGui(Keyboard& k, SPIMasterInterface &spi, uint8_t action, int calibrationTime)
+    void colorCalibrationGui(Keyboard &k, SPIMasterInterface &spi, uint8_t action, int calibrationTime)
     {
         d.clearDisplay();
         d.drawBitmap(8, 24, icons::cross_8, 8, 8, WHITE);
@@ -472,6 +513,7 @@ public:
         d.display();
         delay(500);
     }
+
     void printColorData(bool left, bool right, bool aluminium)
     {
         d.clearDisplay();
@@ -483,6 +525,22 @@ public:
         d.print(right);
         d.print("   ");
         d.println(aluminium);
+        d.display();
+    }
+    void printGyroscopeCalibrationMessage()
+    {
+        d.clearDisplay();
+        d.setTextSize(1);
+        d.setCursor(39, 6);
+        d.print("Setting up");
+        d.setCursor(34, 19);
+        d.print("gyroscope...");
+        d.display();
+    }
+
+    void clearDisplay()
+    {
+        d.clearDisplay();
         d.display();
     }
 
@@ -509,12 +567,11 @@ private:
             }
         }
     }
-    void clearDisplay()
+    void clearRect(int16_t x, int16_t y, int16_t w, int16_t h)
     {
-        d.clearDisplay();
-        d.display();
+        d.fillRect(x, y, w, h, BLACK);
     }
-    void printMessage(char message[], int x, int y, int size)
+    void printLineText(char message[], int16_t x, int16_t y, int8_t size)
     {
         d.clearDisplay();
         d.setTextSize(size);
@@ -522,8 +579,7 @@ private:
         d.print(message);
         d.display();
     }
-    void clearRect(int16_t x, int16_t y, int16_t w, int16_t h)
+    void printParagraph(char text[])
     {
-        d.fillRect(x, y, w, h, BLACK);
     }
 };

@@ -1,70 +1,31 @@
 #include <EEPROM.h>
 #include <QTRSensors.h>
 #include "libraries/math.h"
-
-// EEPROM Memory Addreses ----//
-#define EEPROM_MIN_CAL_ADDR 0x00 // 0x00 (00) - 0x1F (31)
-#define EEPROM_MAX_CAL_ADDR 0x20 // 0x20 (32) - 0x3F (63)
-//----------------------------//
+#include "libraries/eepromManager.h"
 
 extern HardwareSerial Serial;
 
 class QTR_Controller
 {
-private:
-    int ledPin;
-    const uint8_t *sensor_pins;
-
-    QTRSensors qtr;
-
-    int calibrationTime = 10000;          // ms
-    int capacitorChargeTime = 10;         // µs
-    int capacitorMaxDischargeTime = 1000; // µs
-
-    uint16_t sensors_value[8];
-    double sensors_min[8];
-    double sensors_max[8];
-
-    void loadCalibrationFromEEPROM()
-    {
-        for (int i = 0; i < 8; i++)
-        {
-            EEPROM.get(EEPROM_MIN_CAL_ADDR + (i * sizeof(double)), sensors_min[i]);
-            EEPROM.get(EEPROM_MAX_CAL_ADDR + (i * sizeof(double)), sensors_max[i]);
-        }
-    }
-
-    void saveCalibrationToEEPROM()
-    {
-        for (int i = 0; i < 8; i++)
-        {
-            EEPROM.put(EEPROM_MIN_CAL_ADDR + (i * sizeof(double)), sensors_min[i]);
-            EEPROM.put(EEPROM_MAX_CAL_ADDR + (i * sizeof(double)), sensors_max[i]);
-        }
-    }
-
 public:
-    QTR_Controller(const uint8_t sensor_pins[], int ledPin) : sensor_pins(sensor_pins), ledPin(ledPin) {}
+    QTR_Controller(uint8_t sensorPins[], uint8_t ledPin, uint8_t frontPin) : sensorPins(sensorPins), ledPin(ledPin), frontPin(frontPin) {}
+    ~QTR_Controller()
+    {
+        delete[] sensorValues;
+    }
 
     void init()
     {
-        // pinMode(ledPin, OUTPUT);
-        // for (int i = 0; i < 8; i++)
-        // {
-        //     pinMode(sensor_pins[i], OUTPUT);
-        // }
-        // loadCalibrationFromEEPROM();
-
+        pinMode(frontPin, INPUT);
         qtr.setTypeRC();
-        qtr.setSensorPins(sensor_pins, 8);
+        qtr.setSensorPins(sensorPins, sensorCount);
         qtr.setEmitterPin(ledPin);
-        loadCalibrationFromEEPROM();
+
+        qtr.resetCalibration();
         qtr.calibrate();
-        for (int i = 0; i < 8; i++)
-        {
-            qtr.calibrationOn.minimum[i] = sensors_min[i];
-            qtr.calibrationOn.maximum[i] = sensors_max[i];
-        }
+
+        loadCalibrationFromEEPROM();
+        sensorValues = new uint16_t[sensorCount];
     }
 
     bool checkRightAngle(int dir)
@@ -75,12 +36,12 @@ public:
         // {
         //     if (i < 4)
         //     {
-        //         if (sensors_value[i] < 900)
+        //         if (sensorValues[i] < 900)
         //             left = false;
         //     }
         //     else
         //     {
-        //         if (sensors_value[i] < 900)
+        //         if (sensorValues[i] < 900)
         //             right = false;
         //     }
         // }
@@ -93,9 +54,9 @@ public:
         // bool fullBlack = true;
         // for (int i = 0; i < 8; i++)
         // {
-        //     if (sensors_value[i] > 200)
+        //     if (sensorValues[i] > 200)
         //         fullWhite = false;
-        //     if (sensors_value[i] < 800)
+        //     if (sensorValues[i] < 800)
         //         fullBlack = false;
         // }
         // return (fullWhite * -1) + fullBlack;
@@ -103,22 +64,28 @@ public:
 
     double getLine()
     {
-        qtr.readCalibrated(sensors_value);
+        qtr.readCalibrated(sensorValues);
+        readFrontCalibrated();
 
         bool lineDetected = false;
         for (int i = 0; i < 8; i++)
         {
-            if (sensors_value[i] > 200)
+            if (sensorValues[i] > 200)
             {
                 lineDetected = true;
                 break;
+            }
+            if (i == 3 || i == 4)
+            {
+                sensorValues[i] += frontValue;
+                sensorValues[i] /= 2;
             }
         }
 
         if (lineDetected)
         {
-            uint16_t position = qtr.readLineBlack(sensors_value);
-            return (double)position / 3500 - 1;
+            uint16_t position = qtr.readLineBlack(sensorValues);
+            return (double)position / 3500. - 1.;
         }
         else
             return 0;
@@ -130,128 +97,22 @@ public:
         while (millis() - startTime < calibrationTime)
         {
             qtr.calibrate();
-        }
-        for (int i = 0; i < 8; i++)
-        {
-            sensors_min[i] = qtr.calibrationOn.minimum[i];
-            sensors_max[i] = qtr.calibrationOn.maximum[i];
+            readFront();
+            if (frontValue < frontCalibration.min)
+                frontCalibration.min = frontValue;
+            if (frontValue > frontCalibration.max)
+                frontCalibration.max = frontValue;
         }
         saveCalibrationToEEPROM();
     }
 
-    // void readLine()
-    // {
-    //     measure_times();
-    //     double vSum = 0;
-    //     double wSum = 0;
-    //     for (int i = 1; i <= 8; i++)
-    //     {
-    //         vSum += sensors_value[i] * i;
-    //         wSum += sensors_value[i];
-    //     }
-    //     if (checkFull() != 0)
-    //         return 0;
-    //     if (checkRightAngle(-1))
-    //         return -1;
-    //     if (checkRightAngle(1))
-    //         return +1;
-    //     return vSum / wSum;
-    // }
-    // void calibrate()
-    // {
-    //     for (int i = 0; i < 8; i++)
-    //     {
-    //         sensors_min[i] = capacitorMaxDischargeTime;
-    //         sensors_max[i] = 0;
-    //     }
-    //     unsigned long startTime = millis();
-    //     while (millis() - startTime < calibrationTime)
-    //     {
-    //         measure_times_raw();
-    //         for (int i = 0; i < 8; i++)
-    //         {
-    //             if (sensors_value[i] < sensors_min[i])
-    //                 sensors_min[i] = sensors_value[i];
-    //             if (sensors_value[i] > sensors_max[i])
-    //                 sensors_max[i] = sensors_value[i];
-    //         }
-    //     }
-    //     saveCalibrationToEEPROM();
-    // }
-
-    // void clearTimes()
-    // {
-    //     for (int i = 0; i < 8; i++)
-    //     {
-    //         sensors_value[i] = 0;
-    //     }
-    // }
-    // void measure_times()
-    // {
-    //     measure_times_raw();
-    //     for (int i = 0; i < 8; i++)
-    //     {
-    //         sensors_value[i] = constrain(sensors_value[i], sensors_min[i], sensors_max[i]);
-    //         sensors_value[i] = math::fMap(sensors_value[i], sensors_min[i], sensors_max[i], 0, 1);
-    //     }
-    // }
-    // void measure_times_raw()
-    // {
-    //     digitalWrite(ledPin, HIGH); //Turn on LEDs
-    //     delayMicroseconds(10);      // Give LEDs time to react
-
-    //     for (int i = 0; i < 8; i++)
-    //     {
-    //         digitalWrite(sensor_pins[i], HIGH);
-    //         delayMicroseconds(capacitorChargeTime); // Wait for the capacitors to charge up
-
-    //         pinMode(sensor_pins[i], INPUT); // Switch to high impedence mode
-
-    //         unsigned long tStart = micros();
-    //         unsigned long dischargeTime = 0;
-    //         while (digitalRead(sensor_pins[i]) == HIGH && dischargeTime < capacitorMaxDischargeTime)
-    //             dischargeTime = micros() - tStart;
-    //         sensors_value[i] = dischargeTime;
-
-    //         pinMode(sensor_pins[i], OUTPUT); // Revert back to charge mode
-    //         digitalWrite(sensor_pins[i], LOW);
-    //     }
-
-    //     digitalWrite(ledPin, LOW); // Turn off LEDS
-    // }
-
     void printValues()
     {
-        // measure_times_raw();
-        // int maxIndex = 0;
-        // float maxVal = 0;
-        // for (int i = 0; i < 8; i++)
-        // {
-        //     if (sensors_value[i] > maxVal)
-        //     {
-        //         maxVal = sensors_value[i];
-        //         maxIndex = i;
-        //     }
-        // }
-        // Serial.print("|");
-        // for (int i = 0; i < 8; i++)
-        // {
-        //     if (i == maxIndex)
-        //         Serial.print("*");
-        //     else
-        //         Serial.print(".");
-        // }
-        // Serial.print("| - ");
+        qtr.readCalibrated(sensorValues);
         for (int i = 0; i < 8; i++)
         {
-            Serial.print(sensors_value[i]);
-            Serial.print("|");
-            Serial.print(sensors_min[i]);
-            Serial.print("|");
-            Serial.print(sensors_max[i]);
-
-            if (i < 7)
-                Serial.print(", ");
+            Serial.print(sensorValues[i]);
+            Serial.print(" | ");
         }
         Serial.println();
     }
@@ -259,14 +120,65 @@ public:
     {
         for (int i = 0; i < 8; i++)
         {
-            Serial.print("min: ");
-            Serial.print(sensors_min[i]);
-            Serial.print("| max:");
-            Serial.print(sensors_max[i]);
-
-            if (i < 7)
-                Serial.print(", ");
+            Serial.print(i);
+            Serial.print(" | min: ");
+            Serial.print(qtr.calibrationOn.minimum[i]);
+            Serial.print(", max: ");
+            Serial.print(qtr.calibrationOn.maximum[i]);
+            Serial.println();
         }
-        Serial.println();
+    }
+
+private:
+    struct SensorCalibration
+    {
+        uint16_t min;
+        uint16_t max;
+    };
+
+    const uint8_t ledPin;
+    const uint8_t frontPin;
+    const uint8_t sensorCount = 8;
+    const uint8_t *sensorPins;
+
+    QTRSensors qtr;
+    uint16_t *sensorValues;
+    uint16_t frontValue;
+    SensorCalibration frontCalibration = {0, 0};
+
+    static const int calibrationTime = 10000; // ms
+
+    void readFront()
+    {
+        frontValue = analogRead(frontPin);
+    }
+    void readFrontCalibrated()
+    {
+        frontValue = map(analogRead(frontPin), frontCalibration.min, frontCalibration.max, 0, 1000);
+    }
+
+    void loadCalibrationFromEEPROM()
+    {
+        if (qtr.calibrationOn.initialized)
+        {
+            for (int i = 0; i < 8; i++)
+            {
+                eepromManager.get(i * 2, qtr.calibrationOn.minimum[i]);
+                eepromManager.get(i * 2 + 1, qtr.calibrationOn.maximum[i]);
+            }
+        }
+        eepromManager.get(sensorCount * 2, frontCalibration);
+    }
+    void saveCalibrationToEEPROM()
+    {
+        if (qtr.calibrationOn.initialized)
+        {
+            for (int i = 0; i < 8; i++)
+            {
+                eepromManager.put(i * 2, qtr.calibrationOn.minimum[i]);
+                eepromManager.put(i * 2 + 1, qtr.calibrationOn.maximum[i]);
+            }
+        }
+        eepromManager.put(sensorCount * 2, frontCalibration);
     }
 };

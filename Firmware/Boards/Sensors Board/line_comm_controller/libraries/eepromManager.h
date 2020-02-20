@@ -1,6 +1,6 @@
 #pragma once
 
-#include <EEPROM/src/EEPROM.h>
+#include <EEPROM.h>
 #include "array.h"
 
 extern HardwareSerial Serial;
@@ -38,7 +38,15 @@ public:
             EEPROM.put(addressIdMap[index].a + sizeof(uint8_t), data);
         }
         else
-            put(data);
+        {
+            addressIdMap.push(pair<int, uint8_t>(dataPointer, id));
+            EEPROM.put(dataPointer, (uint8_t)sizeof(T));
+            dataPointer += sizeof(uint8_t);
+            EEPROM.put(dataPointer, data);
+            dataPointer += sizeof(T);
+            EEPROM.put(dataPointer, id);
+            dataPointer += sizeof(uint8_t);
+        }
     }
 
     template <class T>
