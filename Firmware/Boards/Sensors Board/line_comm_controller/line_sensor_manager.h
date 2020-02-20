@@ -8,18 +8,24 @@ extern HardwareSerial Serial;
 class QTR_Controller
 {
 public:
-    QTR_Controller(const uint8_t sensor_pins[], uint8_t ledPin) : sensor_pins(sensor_pins), ledPin(ledPin) {}
+    QTR_Controller(uint8_t sensorPins[], uint8_t ledPin, uint8_t frontPin) : sensorPins(sensorPins), ledPin(ledPin), frontPin(frontPin) {}
+    ~QTR_Controller()
+    {
+        delete[] sensorValues;
+    }
 
     void init()
     {
+        pinMode(frontPin, INPUT);
         qtr.setTypeRC();
-        qtr.setSensorPins(sensor_pins, 8);
+        qtr.setSensorPins(sensorPins, sensorCount);
         qtr.setEmitterPin(ledPin);
 
         qtr.resetCalibration();
         qtr.calibrate();
 
         loadCalibrationFromEEPROM();
+        sensorValues = new uint16_t[sensorCount];
     }
 
     bool checkRightAngle(int dir)
@@ -59,6 +65,7 @@ public:
     double getLine()
     {
         qtr.readCalibrated(sensorValues);
+        readFrontCalibrated();
 
         bool lineDetected = false;
         for (int i = 0; i < 8; i++)
@@ -67,6 +74,11 @@ public:
             {
                 lineDetected = true;
                 break;
+            }
+            if (i == 3 || i == 4)
+            {
+                sensorValues[i] += frontValue;
+                sensorValues[i] /= 2;
             }
         }
 
@@ -85,6 +97,11 @@ public:
         while (millis() - startTime < calibrationTime)
         {
             qtr.calibrate();
+            readFront();
+            if (frontValue < frontCalibration.min)
+                frontCalibration.min = frontValue;
+            if (frontValue > frontCalibration.max)
+                frontCalibration.max = frontValue;
         }
         saveCalibrationToEEPROM();
     }
@@ -113,12 +130,32 @@ public:
     }
 
 private:
+    struct SensorCalibration
+    {
+        uint16_t min;
+        uint16_t max;
+    };
+
     const uint8_t ledPin;
-    const uint8_t *sensor_pins;
+    const uint8_t frontPin;
+    const uint8_t sensorCount = 8;
+    const uint8_t *sensorPins;
+
     QTRSensors qtr;
-    uint16_t sensorValues[8];
+    uint16_t *sensorValues;
+    uint16_t frontValue;
+    SensorCalibration frontCalibration = {0, 0};
 
     static const int calibrationTime = 10000; // ms
+
+    void readFront()
+    {
+        frontValue = analogRead(frontPin);
+    }
+    void readFrontCalibrated()
+    {
+        frontValue = map(analogRead(frontPin), frontCalibration.min, frontCalibration.max, 0, 1000);
+    }
 
     void loadCalibrationFromEEPROM()
     {
@@ -130,6 +167,7 @@ private:
                 eepromManager.get(i * 2 + 1, qtr.calibrationOn.maximum[i]);
             }
         }
+        eepromManager.get(sensorCount * 2, frontCalibration);
     }
     void saveCalibrationToEEPROM()
     {
@@ -141,5 +179,6 @@ private:
                 eepromManager.put(i * 2 + 1, qtr.calibrationOn.maximum[i]);
             }
         }
+        eepromManager.put(sensorCount * 2, frontCalibration);
     }
 };

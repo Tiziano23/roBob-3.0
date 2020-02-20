@@ -4,6 +4,8 @@
 
 #include "line_sensor_manager.h"
 
+#define FRONT_IR A6
+
 // Communication pins ------------//
 #define GREEN_SX 5
 #define GREEN_DX 6
@@ -54,7 +56,7 @@ struct config
 } cfg;
 
 const uint8_t sensor_pins[8] = {A5, A4, A3, A2, A1, A0, 8, 9};
-QTR_Controller qtr(sensor_pins, QTR_LED_PIN);
+QTR_Controller qtr(sensor_pins, QTR_LED_PIN, FRONT_IR);
 SPISlaveInterface spi;
 
 SoftwareSerial configSerial(CONFIG_RX, CONFIG_TX);
@@ -63,9 +65,10 @@ void setup()
 {
     Serial.begin(115200);
     configSerial.begin(9600);
-    
+
     pinMode(GREEN_SX, INPUT);
     pinMode(GREEN_DX, INPUT);
+    pinMode(FRONT_IR, INPUT);
 
     eepromManager.init();
     qtr.init();

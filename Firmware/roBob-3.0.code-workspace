@@ -16,5 +16,10 @@
 			"name": "VSCode Configurations",
 			"path": "VSCode Configurations"
 		}
-	]
+	],
+	"settings": {
+		"files.associations": {
+			"cmath": "cpp"
+		}
+	}
 }

@@ -123,47 +123,39 @@ public:
     {
         movementSpeed = speed;
     }
-    double getSpeed()
+    double getSpeed() { return movementSpeed; }
+    void setSpeedMultiplier(double multiplier)
     {
-        return movementSpeed;
+        speedMultiplier = multiplier;
     }
+    double getSpeedMultiplier() { return speedMultiplier; }
 
     void setKp(double _Kp)
     {
         Kp = _Kp;
         pidController.SetTunings(Kp, Ki, Kd);
     }
-    double getKp()
-    {
-        return Kp;
-    }
+    double getKp() { return Kp; }
     void setKi(double _Ki)
     {
         Ki = _Ki;
         pidController.SetTunings(Kp, Ki, Kd);
     }
-    double getKi()
-    {
-        return Ki;
-    }
+    double getKi() { return Ki; }
     void setKd(double _Kd)
     {
         Kd = _Kd;
         pidController.SetTunings(Kp, Ki, Kd);
     }
-    double getKd()
-    {
-        return Kd;
-    }
+    double getKd() { return Kd; }
 
     void followLine()
     {
         PIDInput = linePosition;
         pidController.Compute();
-        leftMotor.setSpeed(calcLeftMotorSpeed(PIDOutput, movementSpeed, 1));
-        rightMotor.setSpeed(calcRightMotorSpeed(PIDOutput, movementSpeed, 1));
+        leftMotor.setSpeed(calcLeftMotorSpeed(PIDOutput, movementSpeed * speedMultiplier, 1));
+        rightMotor.setSpeed(calcRightMotorSpeed(PIDOutput, movementSpeed * speedMultiplier, 1));
     }
-
     void stop()
     {
         leftMotor.setSpeed(0);
@@ -214,15 +206,15 @@ public:
     {
         stop();
         delay(750);
-        moveForward(0.1);
-        turnByAngle(-45);
+        moveForward(0.075);
+        turnByAngle(-80);
     }
     void turnGreenRight()
     {
         stop();
         delay(750);
-        moveForward(0.1);
-        turnByAngle(45);
+        moveForward(0.075);
+        turnByAngle(80);
     }
     void turnGreenBoth()
     {
@@ -231,6 +223,7 @@ public:
 
 private:
     double movementSpeed = 0.35;
+    double speedMultiplier = 1;
     double Kp = 2.500;
     double Ki = 0.000;
     double Kd = 0.100;

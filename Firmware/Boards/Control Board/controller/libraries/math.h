@@ -1,9 +1,5 @@
 #pragma once
 
-#define MATH_g 9.81 //9.80665
-#define MATH_toDegrees 180/PI
-#define MATH_toRadians PI/180
-
 namespace math
 {
 
@@ -21,6 +17,12 @@ public:
         z = 0;
     }
     Vector3f(double x, double y, double z) : x(x), y(y), z(z) {}
+    Vector3f(const Vector3f &v)
+    {
+        x = v.x;
+        y = v.y;
+        z = v.z;
+    }
 
     Vector3f operator+(const Vector3f &v)
     {
@@ -114,6 +116,13 @@ public:
         return *this;
     }
 
+    Vector3f &setXYZ(double _x, double _y, double _z)
+    {
+        x = _x;
+        y = _y;
+        z = _z;
+    }
+
     double dot(Vector3f &v)
     {
         return (x * v.x) + (y * v.y) + (z * v.z);
@@ -121,7 +130,116 @@ public:
 
     double xyDist()
     {
-        return sqrt(pow(x, 2) + pow(y,2));
+        return sqrt(pow(x, 2) + pow(y, 2));
+    }
+};
+class Vector2f
+{
+public:
+    double x;
+    double y;
+
+    Vector2f()
+    {
+        x = 0;
+        y = 0;
+    }
+    Vector2f(double x, double y) : x(x), y(y) {}
+    Vector2f(const Vector2f &v)
+    {
+        x = v.x;
+        y = v.y;
+    }
+
+    Vector2f operator+(const Vector2f &v)
+    {
+        Vector2f w;
+        w.x = x + v.x;
+        w.y = y + v.y;
+        return w;
+    }
+    Vector2f operator-(const Vector2f &v)
+    {
+        Vector2f w;
+        w.x = x - v.x;
+        w.y = y - v.y;
+        return w;
+    }
+    Vector2f operator*(const double &scalar)
+    {
+        Vector2f w;
+        w.x = x * scalar;
+        w.y = y * scalar;
+        return w;
+    }
+    Vector2f operator*(const Vector2f &v)
+    {
+        Vector2f w;
+        w.x = x * v.x;
+        w.y = y * v.y;
+        return w;
+    }
+    Vector2f operator/(const double &scalar)
+    {
+        Vector2f w;
+        w.x = x / scalar;
+        w.y = y / scalar;
+        return w;
+    }
+    Vector2f operator/(const Vector2f &v)
+    {
+        Vector2f w;
+        w.x = x / v.x;
+        w.y = y / v.y;
+        return w;
+    }
+
+    Vector2f &operator+=(const Vector2f &v)
+    {
+        x += v.x;
+        y += v.y;
+        return *this;
+    }
+    Vector2f &operator-=(const Vector2f &v)
+    {
+        x -= v.x;
+        y -= v.y;
+        return *this;
+    }
+    Vector2f &operator*=(const double scalar)
+    {
+        x *= scalar;
+        y *= scalar;
+        return *this;
+    }
+    Vector2f &operator*=(const Vector2f &v)
+    {
+        x *= v.x;
+        y *= v.y;
+        return *this;
+    }
+    Vector2f &operator/=(const double scalar)
+    {
+        x /= scalar;
+        y /= scalar;
+        return *this;
+    }
+    Vector2f &operator/=(const Vector2f &v)
+    {
+        x /= v.x;
+        y /= v.y;
+        return *this;
+    }
+
+    Vector2f &setXY(double _x, double _y)
+    {
+        x = _x;
+        y = _y;
+    }
+
+    double length()
+    {
+        return sqrt(pow(x, 2) + pow(y, 2));
     }
 };
 

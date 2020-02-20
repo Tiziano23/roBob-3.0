@@ -4,16 +4,6 @@ template <class A, class B>
 using function = A (*)(B);
 typedef void (*void_function)();
 
-template <typename Function>
-void repeatFor(int duration, Function action)
-{
-    unsigned long startTime = millis();
-    while (millis() - startTime < duration)
-    {
-        action(millis() - startTime);
-    }
-}
-
 struct threshold
 {
     double min;
@@ -165,3 +155,35 @@ private:
         cHSV.v = M;
     }
 };
+
+template <typename Function>
+void repeatFor(int duration, Function action)
+{
+    unsigned long lastTime = millis();
+    unsigned long startTime = millis();
+    while (millis() - startTime < duration)
+    {
+        double dt = (millis() - lastTime) / 1000.;
+        lastTime = millis();
+        action((millis() - startTime) / 1000., dt);
+    }
+}
+
+#ifdef __arm__
+// should use uinstd.h to define sbrk but Due causes a conflict
+extern "C" char *sbrk(int incr);
+#else  // __ARM__
+extern char *__brkval;
+#endif // __arm__
+
+int freeMemory()
+{
+    char top;
+#ifdef __arm__
+    return &top - reinterpret_cast<char *>(sbrk(0));
+#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+    return &top - __brkval;
+#else  // __arm__
+    return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+#endif // __arm__
+}
