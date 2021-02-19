@@ -5,12 +5,6 @@
 #include "libraries/math.h"
 #include "libraries/utils.h"
 
-enum KeyboardButton
-{
-    LEFT,
-    MIDDLE,
-    RIGHT
-};
 class Button
 {
 public:
@@ -73,6 +67,13 @@ private:
 class Keyboard
 {
 public:
+    enum KeyboardButton
+    {
+        LEFT,
+        MIDDLE,
+        RIGHT
+    };
+
     Keyboard(uint8_t leftButtonPin, uint8_t centerButtonPin, uint8_t rightButtonPin, uint8_t connectedPin) : connectedPin(connectedPin)
     {
         buttons[0] = leftButtonPin;

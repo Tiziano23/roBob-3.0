@@ -283,10 +283,6 @@ public:
     }
     void boot()
     {
-        double pos = 39;
-        double speed = 95;
-        bool updateBrightness = true;
-
         d.clearDisplay();
         printLineText("ro_Bob 3.0", 6, 4, 2);
         d.display();
@@ -297,7 +293,11 @@ public:
         d.ssd1306_command(0);
         d.ssd1306_command(SSD1306_SETPRECHARGE);
         d.ssd1306_command(0);
-        repeatFor(3000, [&](double t, double dt) {
+
+        double pos = 39;
+        double speed = 95;
+        bool updateBrightness = true;
+        repeatFor(1500, [&](double t, double dt) {
             if (updateBrightness)
             {
                 double brightness = sin(M_PI_2 * t / 1.65);
@@ -396,24 +396,24 @@ public:
         T newVal = n;
 
         k.update();
-        while (!k.pressedOnce(MIDDLE))
+        while (!k.pressedOnce(Keyboard::MIDDLE))
         {
             k.update();
 
-            if (!k.pressed(LEFT) && !k.pressed(RIGHT))
+            if (!k.pressed(Keyboard::LEFT) && !k.pressed(Keyboard::RIGHT))
             {
                 v = step;
                 inc = 0;
             }
-            else if (!(k.pressed(LEFT) && k.pressed(RIGHT)))
+            else if (!(k.pressed(Keyboard::LEFT) && k.pressed(Keyboard::RIGHT)))
             {
-                if (k.pressedRepeat(LEFT))
+                if (k.pressedRepeat(Keyboard::LEFT))
                 {
                     v += a;
                     inc += v;
                     newVal -= inc;
                 }
-                if (k.pressedRepeat(RIGHT))
+                if (k.pressedRepeat(Keyboard::RIGHT))
                 {
                     v += a;
                     inc += v;
@@ -550,16 +550,16 @@ private:
 
     bool waitForInput(Keyboard &k, bool animation = false)
     {
-        while (!k.pressedOnce(MIDDLE))
+        while (!k.pressedOnce(Keyboard::MIDDLE))
         {
             k.update();
-            if (k.pressedOnce(LEFT))
+            if (k.pressedOnce(Keyboard::LEFT))
             {
                 if (animation)
                     drawActionAborted();
                 return false;
             }
-            if (k.pressedOnce(RIGHT))
+            if (k.pressedOnce(Keyboard::RIGHT))
             {
                 if (animation)
                     drawActionCompleted();

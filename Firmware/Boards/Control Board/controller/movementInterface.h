@@ -3,11 +3,12 @@
 #include <PID_v1.h>
 
 #include "libraries/math.h"
+#include "libraries/array.h"
 #include "devices.h"
 
 // Servos Costants ---------------//
-#define M_PER_SECOND_FULL_SPEED 0.210526316   // m/s
-#define DEG_PER_SECOND_FULL_SPEED 90.04783149 // °/s
+#define M_PER_SECOND_FULL_SPEED 0.210526316      // m/s
+#define DEG_PER_SECOND_AT_FULL_SPEED 90.04783149 // °/s
 //--------------------------------//
 
 enum ServoMode
@@ -74,7 +75,7 @@ public:
 private:
     int pin;
     unsigned int zero = 1500;
-    unsigned int range = 70;
+    unsigned int range = 45;
     double speed = 0;
     Servo motor = Servo();
     ServoMode mode = NORMAL;
@@ -83,17 +84,27 @@ private:
 class MovementInterface
 {
 public:
+    enum ManeuverType
+    {
+        MOVE_FORWARD,
+        MOVE_BACKWARDS,
+        TURN_ANGLE_LEFT,
+        TURN_ANGLE_RIGHT
+    };
+    struct ManeuverData
+    {
+        ManeuverType type;
+        uint16_t duration;
+        uint32_t startTime;
+    };
+
     void init()
     {
         pidController.SetMode(AUTOMATIC);
         pidController.SetOutputLimits(-1, 1);
         leftMotor.setZeroValue(1500);
         rightMotor.setZeroValue(1504);
-    }
-
-    void setGyroscopeAccelerometer(GyroscopeAccelerometer &gyroscope)
-    {
-        accelGyro = &gyroscope;
+        loadDataFromEEPROM();
     }
 
     void attachLeftMotor(int pin)
@@ -103,6 +114,198 @@ public:
     void attachRightMotor(int pin)
     {
         rightMotor.attach(pin);
+    }
+    void setGyroscopeAccelerometer(GyroscopeAccelerometer &gyroscope)
+    {
+        accelGyro = &gyroscope;
+    }
+
+    // Maneuvers
+    int queuedManeuvers()
+    {
+        return maneuverQueue.size();
+    }
+    bool isManeuverQueued()
+    {
+        return maneuverQueue.size() > 0;
+    }
+    bool isManeuverRunning()
+    {
+        if (!currentManeuverAvailable)
+            false;
+        else
+            return (millis() - currentManeuver.startTime) < currentManeuver.duration;
+    }
+    void updateManeuver()
+    {
+        if (isManeuverQueued() && !currentManeuverAvailable)
+            startNextManeuver();
+
+        if (hasCurrentManeuverEnded())
+        {
+            stop();
+            currentManeuverAvailable = false;
+            if (isManeuverQueued())
+                startNextManeuver();
+        }
+    }
+    void clearManeuverQueue()
+    {
+        maneuverQueue.clear();
+    }
+    void queueManeuver(ManeuverType type, uint16_t duration)
+    {
+        ManeuverData m;
+        m.type = type;
+        m.duration = duration;
+        maneuverQueue.put(m);
+    }
+
+    // General movement function
+    void stop()
+    {
+        leftMotor.setSpeed(0);
+        rightMotor.setSpeed(0);
+    }
+    void moveForward(double distance)
+    {
+        queueManeuver(MOVE_FORWARD, distance / (movementSpeed * M_PER_SECOND_FULL_SPEED) * 1000);
+    }
+    void moveBackwards(double distance)
+    {
+        queueManeuver(MOVE_BACKWARDS, distance / (movementSpeed * M_PER_SECOND_FULL_SPEED) * 1000);
+    }
+    void turnAngleLeft(float angle)
+    {
+        queueManeuver(TURN_ANGLE_LEFT, angle / (0.7 * DEG_PER_SECOND_AT_FULL_SPEED) * 1000);
+    }
+    void turnAngleRight(float angle)
+    {
+        queueManeuver(TURN_ANGLE_RIGHT, angle / (0.7 * DEG_PER_SECOND_AT_FULL_SPEED) * 1000);
+    }
+
+    // Line following
+    void followLine()
+    {
+        PIDInput = linePosition;
+        pidController.Compute();
+        leftMotor.setSpeed(calcLeftMotorSpeed(PIDOutput, movementSpeed * speedMultiplier, 1));
+        rightMotor.setSpeed(calcRightMotorSpeed(PIDOutput, movementSpeed * speedMultiplier, 1));
+    }
+    void setLinePosition(double position)
+    {
+        linePosition = position;
+    }
+    void setSpeed(double speed)
+    {
+        movementSpeed = speed;
+        saveDataToEEPROM();
+    }
+    double getSpeed() { return movementSpeed; }
+    void setSpeedMultiplier(double multiplier)
+    {
+        speedMultiplier = multiplier;
+    }
+    double getSpeedMultiplier() { return speedMultiplier; }
+    void setKp(double _Kp)
+    {
+        Kp = _Kp;
+        saveDataToEEPROM();
+        pidController.SetTunings(Kp, Ki, Kd);
+    }
+    double getKp() { return Kp; }
+    void setKi(double _Ki)
+    {
+        Ki = _Ki;
+        saveDataToEEPROM();
+        pidController.SetTunings(Kp, Ki, Kd);
+    }
+    double getKi() { return Ki; }
+    void setKd(double _Kd)
+    {
+        Kd = _Kd;
+        saveDataToEEPROM();
+        pidController.SetTunings(Kp, Ki, Kd);
+    }
+    double getKd() { return Kd; }
+
+    // Green
+    void checkGreenIgnoreTimeout()
+    {
+        if (ignoreGreenLeft || ignoreGreenRight)
+        {
+            if (millis() - lastIgnoreTime > greenIgnoreDelay)
+            {
+                ignoreGreenLeft = false;
+                ignoreGreenRight = false;
+            }
+        }
+    }
+    bool shouldTurnLeft(bool greenLeft)
+    {
+        if (greenLeft && !ignoreGreenLeft)
+        {
+            ignoreGreenRight = !ignoreGreenRight;
+            lastIgnoreTime = millis();
+            return true;
+        }
+        else
+            return false;
+    }
+    void turnLeft()
+    {
+        moveForward(0.075);
+        turnAngleLeft(65);
+    }
+    bool shouldTurnRight(bool greenRight)
+    {
+        if (greenRight && !ignoreGreenRight)
+        {
+            ignoreGreenLeft = !ignoreGreenLeft;
+            lastIgnoreTime = millis();
+            return true;
+        }
+        else
+            return false;
+    }
+    void turnRight()
+    {
+        moveForward(0.075);
+        turnAngleRight(65);
+    }
+    bool shouldInverse(bool greenLeft, bool greenRight)
+    {
+        return greenLeft && greenRight;
+    }
+    void inverse()
+    {
+        turnAngleRight(180);
+    }
+
+    // Obstacle
+    bool isAvoidingObstacle()
+    {
+        return avoidingObstacle;
+    }
+    void startAvoidingObstacleLeft(SR_04 *distanceSensor)
+    {
+        turnAngleLeft(90);
+        obstacleDistanceSensor = distanceSensor;
+        avoidingObstacle = true;
+    }
+    void startAvoidingObstacleRight(SR_04 *distanceSensor)
+    {
+        turnAngleRight(90);
+        obstacleDistanceSensor = distanceSensor;
+        avoidingObstacle = true;
+    }
+    void followObstacle()
+    {
+        if (obstacleDistanceSensor)
+        {
+            leftMotor.setSpeed(obstacleSpeed);
+            rightMotor.setSpeed(obstacleSpeed);
+        }
     }
 
     ServoMotor &getLeftMotor()
@@ -114,129 +317,42 @@ public:
         return rightMotor;
     }
 
-    void setLinePosition(double position)
-    {
-        linePosition = position;
-    }
-
-    void setSpeed(double speed)
-    {
-        movementSpeed = speed;
-    }
-    double getSpeed() { return movementSpeed; }
-    void setSpeedMultiplier(double multiplier)
-    {
-        speedMultiplier = multiplier;
-    }
-    double getSpeedMultiplier() { return speedMultiplier; }
-
-    void setKp(double _Kp)
-    {
-        Kp = _Kp;
-        pidController.SetTunings(Kp, Ki, Kd);
-    }
-    double getKp() { return Kp; }
-    void setKi(double _Ki)
-    {
-        Ki = _Ki;
-        pidController.SetTunings(Kp, Ki, Kd);
-    }
-    double getKi() { return Ki; }
-    void setKd(double _Kd)
-    {
-        Kd = _Kd;
-        pidController.SetTunings(Kp, Ki, Kd);
-    }
-    double getKd() { return Kd; }
-
-    void followLine()
-    {
-        PIDInput = linePosition;
-        pidController.Compute();
-        leftMotor.setSpeed(calcLeftMotorSpeed(PIDOutput, movementSpeed * speedMultiplier, 1));
-        rightMotor.setSpeed(calcRightMotorSpeed(PIDOutput, movementSpeed * speedMultiplier, 1));
-    }
-    void stop()
-    {
-        leftMotor.setSpeed(0);
-        rightMotor.setSpeed(0);
-    }
-    void moveForward(double distance)
-    {
-        leftMotor.setSpeed(movementSpeed);
-        rightMotor.setSpeed(movementSpeed);
-        unsigned long startTime = millis();
-        while (millis() - startTime < (distance / (movementSpeed * M_PER_SECOND_FULL_SPEED)) * 1000)
-            ;
-        stop();
-        // double speed = 0, distanceTravelled = 0;
-        // while (distanceTravelled < distance)
-        // {
-        //     accelGyro->update();
-        //     speed += accelGyro->getAcceleration().xyDist();
-        //     distanceTravelled += speed;
-        //     d.clearDisplay();
-        //     d.setCursor(0, 0);
-        //     d.print("v: ");
-        //     d.println(speed);
-        //     d.print("s: ");
-        //     d.println(distanceTravelled);
-        //     d.display();
-        // }
-    }
-    void moveBackwards(double distance)
-    {
-        leftMotor.setSpeed(movementSpeed);
-        rightMotor.setSpeed(movementSpeed);
-        unsigned long startTime = millis();
-        while (millis() - startTime < (distance / (movementSpeed * M_PER_SECOND_FULL_SPEED)) * 1000)
-            ;
-        stop();
-    }
-    void turnByAngle(float angle)
-    {
-        unsigned long startTime = millis();
-        leftMotor.setSpeed(0.7 * math::sign(angle));
-        rightMotor.setSpeed(0.7 * -math::sign(angle));
-        while (millis() - startTime < abs(angle) / (0.7 * DEG_PER_SECOND_FULL_SPEED) * 1000)
-            ;
-        stop();
-    }
-    void turnGreenLeft()
-    {
-        stop();
-        delay(750);
-        moveForward(0.075);
-        turnByAngle(-80);
-    }
-    void turnGreenRight()
-    {
-        stop();
-        delay(750);
-        moveForward(0.075);
-        turnByAngle(80);
-    }
-    void turnGreenBoth()
-    {
-        turnByAngle(180);
-    }
-
 private:
-    double movementSpeed = 0.35;
-    double speedMultiplier = 1;
-    double Kp = 2.500;
-    double Ki = 0.000;
-    double Kd = 0.100;
-
-    double PIDInput = 0;
-    double PIDOutput = 0;
-    double PIDSetpoint = 0;
-    double linePosition = 0;
-
-    PID pidController = PID(&PIDInput, &PIDOutput, &PIDSetpoint, Kp, Ki, Kd, DIRECT);
     ServoMotor leftMotor = ServoMotor(INVERTED);
     ServoMotor rightMotor = ServoMotor();
     GyroscopeAccelerometer *accelGyro;
+
+    // Maneuvers
+    Queue<ManeuverData> maneuverQueue;
+    ManeuverData currentManeuver;
+    bool currentManeuverAvailable = false;
+    double turnSpeed = 0.5;
+
+    // Obstacle avoiding
+    SR_04 *obstacleDistanceSensor;
+    bool avoidingObstacle = false;
+    double obstacleSpeed = 0.3;
+    unsigned long obstacleStartTime;
+    unsigned long obstacleTimeout = 10000; //ms
+
+    // Green turn indicators
+    bool ignoreGreenLeft = false;
+    bool ignoreGreenRight = false;
+    unsigned long lastIgnoreTime = 0;
+    unsigned long greenIgnoreDelay = 10000; //ms
+
+    // Line following
+    double movementSpeed = 0.35;
+    double speedMultiplier = 1;
+    double linePosition = 0;
+    // - PID Controller
+    double Kp = 1.000;
+    double Ki = 0.000;
+    double Kd = 0.000;
+    double PIDInput = 0;
+    double PIDOutput = 0;
+    double PIDSetpoint = 0;
+    PID pidController = PID(&PIDInput, &PIDOutput, &PIDSetpoint, Kp, Ki, Kd, DIRECT);
 
     double calcLeftMotorSpeed(double x, double v, double n)
     {
@@ -248,6 +364,71 @@ private:
     double calcRightMotorSpeed(double x, double v, double n)
     {
         return calcLeftMotorSpeed(-x, v, n);
+    }
+
+    // EEPROM data
+    void loadDataFromEEPROM()
+    {
+        eepromManager.get(0, movementSpeed);
+        eepromManager.get(1, Kp);
+        eepromManager.get(2, Ki);
+        eepromManager.get(3, Kd);
+    }
+    void saveDataToEEPROM()
+    {
+        eepromManager.put(0, movementSpeed);
+        eepromManager.put(1, Kp);
+        eepromManager.put(2, Ki);
+        eepromManager.put(3, Kd);
+    }
+
+    // Maneuvers methods
+    void moveForwardHandler()
+    {
+        leftMotor.setSpeed(movementSpeed);
+        rightMotor.setSpeed(movementSpeed);
+    }
+    void moveBackwardsHandler()
+    {
+        leftMotor.setSpeed(-movementSpeed);
+        rightMotor.setSpeed(-movementSpeed);
+    }
+    void turnAngleLeftHandler()
+    {
+        leftMotor.setSpeed(-turnSpeed);
+        rightMotor.setSpeed(turnSpeed);
+    }
+    void turnAngleRightHandler()
+    {
+        leftMotor.setSpeed(turnSpeed);
+        rightMotor.setSpeed(-turnSpeed);
+    }
+    bool hasCurrentManeuverEnded()
+    {
+        if (!currentManeuverAvailable)
+            return false;
+        return (millis() - currentManeuver.startTime) >= currentManeuver.duration;
+    }
+    void startNextManeuver()
+    {
+        currentManeuverAvailable = true;
+        currentManeuver = maneuverQueue.get();
+        switch (currentManeuver.type)
+        {
+        case MOVE_FORWARD:
+            moveForwardHandler();
+            break;
+        case MOVE_BACKWARDS:
+            moveBackwardsHandler();
+            break;
+        case TURN_ANGLE_LEFT:
+            turnAngleLeftHandler();
+            break;
+        case TURN_ANGLE_RIGHT:
+            turnAngleRightHandler();
+            break;
+        }
+        currentManeuver.startTime = millis();
     }
 };
 

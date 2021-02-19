@@ -79,7 +79,6 @@ void loop()
         if (cfg.calibrateGreen)
         {
             cfg.calibrateGreen = false;
-            colorManager.calibrateGreen();
         }
         if (cfg.calibrateBlack)
         {
@@ -111,8 +110,8 @@ void loop()
         }
     }
 
-    digitalWrite(GREEN_SX, colorManager.checkGreenSx());
-    digitalWrite(GREEN_DX, colorManager.checkGreenDx());
+    digitalWrite(GREEN_SX, colorManager.checkGreenLeft());
+    digitalWrite(GREEN_DX, colorManager.checkGreenRight());
 }
 
 void writeConfiguration()
