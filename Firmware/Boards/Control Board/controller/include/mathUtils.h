@@ -123,6 +123,7 @@ public:
         x = _x;
         y = _y;
         z = _z;
+        return *this;
     }
 
     double dot(Vector3f &v)
@@ -237,6 +238,7 @@ public:
     {
         x = _x;
         y = _y;
+        return *this;
     }
 
     double length()

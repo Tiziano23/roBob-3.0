@@ -80,8 +80,8 @@ public:
 private:
     char *label;
     bool enabled = true;
-    void_function action;
     uint8_t *icon = icons::null;
+    void_function action;
 };
 
 class Menu
@@ -131,9 +131,9 @@ public:
         else
             return false;
     }
-    virtual void draw() {}
-    virtual bool selectNextItem() {}
-    virtual bool selectPreviousItem() {}
+    virtual void draw() = 0;
+    virtual bool selectNextItem() = 0;
+    virtual bool selectPreviousItem() = 0;
 
 protected:
     String id;
@@ -566,6 +566,7 @@ private:
                 return true;
             }
         }
+        return false;
     }
     void clearRect(int16_t x, int16_t y, int16_t w, int16_t h)
     {

@@ -133,9 +133,10 @@ public:
     bool isManeuverRunning()
     {
         if (!currentManeuverAvailable)
-            false;
+            return false;
         else
             return (millis() - currentManeuver.startTime) < currentManeuver.duration;
+        return false;
     }
     void updateManeuver()
     {

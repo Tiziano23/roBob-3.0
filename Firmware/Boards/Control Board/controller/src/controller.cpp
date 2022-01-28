@@ -103,6 +103,9 @@ NavigationInterface navigation;
 Gui gui;
 Robot robot;
 
+void followLine();
+void decodeColorData(byte data, bool &sx, bool &dx, bool &aluminium);
+
 void setup()
 {
     Wire.begin();
@@ -370,7 +373,6 @@ void setup()
 
     gui.drawActiveMenu();
 }
-
 void loop()
 {
     keyboard.update();
@@ -486,7 +488,6 @@ void followLine()
     movement.clearManeuverQueue();
     movement.stop();
 }
-
 void decodeColorData(byte data, bool &sx, bool &dx, bool &aluminium)
 {
     sx = data & 1;
