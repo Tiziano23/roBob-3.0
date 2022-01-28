@@ -2,12 +2,9 @@
 #include <Servo.h>
 #include <PID_v1.h>
 
-<<<<<<<< HEAD:Firmware/Boards/Control Board/controller/src/movement_interface.h
 #include "math.h"
-========
 #include "libraries/math.h"
 #include "libraries/array.h"
->>>>>>>> 369268d6d35309836db8e6b6a978c821d0d7f064:Firmware/Boards/Control Board/controller/movementInterface.h
 #include "devices.h"
 
 // Servos Costants ---------------//
