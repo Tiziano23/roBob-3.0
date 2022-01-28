@@ -3,7 +3,7 @@
 #include <Wire.h>
 #include <Adafruit_SSD1306.h>
 
-#include "math.h"
+#include "mathUtils.h"
 #include "array.h"
 #include "spi/spi_interface_master.h"
 

@@ -2,8 +2,10 @@
 
 #include <MPU6050_6Axis_MotionApps_V6_12.h>
 
-#include "math.h"
+#include "mathUtils.h"
 #include "utils.h"
+
+#include "eepromManager.h"
 
 class Button
 {

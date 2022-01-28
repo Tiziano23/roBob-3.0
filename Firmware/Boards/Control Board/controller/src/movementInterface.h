@@ -1,10 +1,10 @@
 #pragma once
 #include <Servo.h>
 #include <PID_v1.h>
+#include <Arduino.h>
 
-#include "math.h"
-#include "libraries/math.h"
-#include "libraries/array.h"
+#include "mathUtils.h"
+#include "array.h"
 #include "devices.h"
 
 // Servos Costants ---------------//
