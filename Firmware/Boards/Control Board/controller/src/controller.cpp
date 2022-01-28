@@ -55,8 +55,8 @@
 #define TOGGLE_RIGHT_COLOR 0x07
 //--------------------------------//
 
-#include "libraries/spi/spi_interface_master.h"
-#include "libraries/eepromManager.h"
+#include "spi/spi_interface_master.h"
+#include "eepromManager.h"
 
 #include "navigation_manager.h"
 #include "devices.h"

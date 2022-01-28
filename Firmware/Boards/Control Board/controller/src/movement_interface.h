@@ -2,7 +2,7 @@
 #include <Servo.h>
 #include <PID_v1.h>
 
-#include "libraries/math.h"
+#include "math.h"
 #include "devices.h"
 
 // Servos Costants ---------------//

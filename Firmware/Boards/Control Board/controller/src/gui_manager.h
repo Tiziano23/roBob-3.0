@@ -3,9 +3,9 @@
 #include <Wire.h>
 #include <Adafruit_SSD1306.h>
 
-#include "libraries/math.h"
-#include "libraries/array.h"
-#include "libraries/spi/spi_interface_master.h"
+#include "math.h"
+#include "array.h"
+#include "spi/spi_interface_master.h"
 
 #include "assets/gui_icons.h"
 #include "devices.h"

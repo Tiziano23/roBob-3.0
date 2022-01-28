@@ -2,8 +2,8 @@
 
 #include <MPU6050_6Axis_MotionApps_V6_12.h>
 
-#include "libraries/math.h"
-#include "libraries/utils.h"
+#include "math.h"
+#include "utils.h"
 
 enum KeyboardButton
 {
