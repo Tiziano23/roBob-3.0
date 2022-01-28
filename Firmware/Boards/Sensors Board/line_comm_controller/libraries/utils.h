@@ -1,7 +1,8 @@
 #pragma once
 
-template <class A, class B>
-using function = A (*)(B);
+template <class Type, class ... Args>
+using function = Type (*)(Args...);
+
 typedef void (*void_function)();
 
 struct threshold

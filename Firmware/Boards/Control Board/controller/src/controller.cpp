@@ -58,16 +58,20 @@
 #include "spi/spi_interface_master.h"
 #include "eepromManager.h"
 
-#include "navigation_manager.h"
 #include "devices.h"
-#include "gui_manager.h"
-#include "movement_interface.h"
+
+#include "movementInterface.h"
+#include "navigationInterface.h"
+
+#include "gui.h"
+#include "robot.h"
 
 extern HardwareSerial Serial;
 
 RGBLed led(LED_R, LED_G, LED_B);
 Buzzer buzzer = Buzzer(BUZ_PIN);
 Keyboard keyboard(KB_BTN_LEFT, KB_BTN_CENTER, KB_BTN_RIGHT, KB_CONNECTED);
+GyroscopeAccelerometer accelGyro;
 
 MainMenu mainMenu("main-menu");
 
@@ -91,10 +95,13 @@ ListMenu colorTest("settings:system-test:color");
 ListMenu leftServoSettings("settings:servo-settings:left-servo");
 ListMenu rightServoSettings("settings:servo-settings:right-servo");
 
-Gui gui;
-MovementInterface movement;
 SPIMasterInterface spi;
-GyroscopeAccelerometer accelGyro;
+
+MovementInterface movement;
+NavigationInterface navigation;
+
+Gui gui;
+Robot robot;
 
 void setup()
 {
@@ -111,11 +118,6 @@ void setup()
     buzzer.init();
     keyboard.init();
     movement.init();
-
-    gui.printGyroscopeCalibrationMessage();    
-    accelGyro.init();
-
-    led.setColor(RGBLed::BLUE);
 
     movement.attachLeftMotor(SERVO_LEFT);
     movement.attachRightMotor(SERVO_RIGHT);
@@ -152,7 +154,7 @@ void setup()
     settings.addItem(MenuItem("PID Settings", []() { gui.setActiveMenu("settings:pid-settings"); }));
     settings.addItem(MenuItem("LED Settings", []() { gui.setActiveMenu("settings:led-settings"); }));
     settings.addItem(MenuItem("Accelerometer", []() {
-        while (!keyboard.pressedOnce(MIDDLE))
+        while (!keyboard.pressedOnce(Keyboard::MIDDLE))
         {
             keyboard.update();
             accelGyro.update();
@@ -171,12 +173,12 @@ void setup()
         }
     }));
     settings.addItem(MenuItem("Gyroscope", []() {
-        while (!keyboard.pressedOnce(MIDDLE))
+        while (!keyboard.pressedOnce(Keyboard::MIDDLE))
         {
             keyboard.update();
             accelGyro.update();
 
-            if (keyboard.pressedOnce(RIGHT))
+            if (keyboard.pressedOnce(Keyboard::RIGHT))
                 accelGyro.registerOffset();
 
             d.clearDisplay();
@@ -200,7 +202,7 @@ void setup()
 
     systemTest.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
     systemTest.addItem(MenuItem("Line Sensors", []() {
-        while (!keyboard.pressedOnce(MIDDLE))
+        while (!keyboard.pressedOnce(Keyboard::MIDDLE))
         {
             keyboard.update();
             double line = spi.requestData<double>(LINE);
@@ -227,7 +229,7 @@ void setup()
         gui.drawActionCompleted();
     }));
     colorTest.addItem(MenuItem("Green recognition", []() {
-        while (!keyboard.pressedOnce(MIDDLE))
+        while (!keyboard.pressedOnce(Keyboard::MIDDLE))
         {
             keyboard.update();
             byte data = spi.requestData<byte>(COLOR);
@@ -237,7 +239,7 @@ void setup()
         }
     }));
     colorTest.addItem(MenuItem("Left color", []() {
-        while (!keyboard.pressedOnce(MIDDLE))
+        while (!keyboard.pressedOnce(Keyboard::MIDDLE))
         {
             keyboard.update();
             hsv data = spi.requestData<hsv>(LEFT_COLOR_DATA);
@@ -260,7 +262,7 @@ void setup()
         led.off();
     }));
     colorTest.addItem(MenuItem("Right color", []() {
-        while (!keyboard.pressedOnce(MIDDLE))
+        while (!keyboard.pressedOnce(Keyboard::MIDDLE))
         {
             keyboard.update();
             hsv data = spi.requestData<hsv>(RIGHT_COLOR_DATA);
@@ -286,11 +288,11 @@ void setup()
     servoSettings.addItem(MenuItem("Back", []() { gui.setActiveMenu("settings"); }));
     servoSettings.addItem(MenuItem("Move Forward", []() { movement.moveForward(1); }));
     servoSettings.addItem(MenuItem("Calibrate turn", []() {
-        while (!keyboard.pressedOnce(MIDDLE))
+        movement.getLeftMotor().setSpeed(1);
+        movement.getRightMotor().setSpeed(-1);
+        while (!keyboard.pressedOnce(Keyboard::MIDDLE))
         {
             keyboard.update();
-            movement.getLeftMotor().setSpeed(1);
-            movement.getRightMotor().setSpeed(-1);
         }
         movement.stop();
     }));
@@ -349,10 +351,8 @@ void setup()
     }));
 
     gui.addMenu(&mainMenu);
-
     gui.addMenu(&calibration);
     gui.addMenu(&colorCalibration);
-
     gui.addMenu(&settings);
     gui.addMenu(&systemTest);
     gui.addMenu(&colorTest);
@@ -361,72 +361,69 @@ void setup()
     gui.addMenu(&rightServoSettings);
     gui.addMenu(&pidSettings);
     gui.addMenu(&ledSettings);
-
     gui.setActiveMenu("main-menu");
+
+    led.setColor(RGBLed::BLUE);
+
+    gui.printGyroscopeCalibrationMessage();
+    accelGyro.init();
+
     gui.drawActiveMenu();
 }
 
 void loop()
 {
     keyboard.update();
-    if (!keyboard.isConnected())
-        followLine();
+    movement.updateManeuver();
 
-    if (keyboard.pressedRepeat(LEFT))
+    if (!keyboard.isConnected())
+    {
+        followLine();
+    }
+
+    if (keyboard.pressedRepeat(Keyboard::LEFT))
+    {
         gui.selectPreviousItem() ? buzzer.actionTone() : buzzer.disabledTone();
-    else if (keyboard.pressedOnce(MIDDLE))
+    }
+    else if (keyboard.pressedOnce(Keyboard::MIDDLE))
     {
         keyboard.update();
         gui.execSelectedItemAction() ? buzzer.actionTone() : buzzer.disabledTone();
     }
-    else if (keyboard.pressedRepeat(RIGHT))
+    else if (keyboard.pressedRepeat(Keyboard::RIGHT))
+    {
         gui.selectNextItem() ? buzzer.actionTone() : buzzer.disabledTone();
+    }
 
     gui.drawActiveMenu();
 }
 
 void followLine()
 {
-    keyboard.update();
-    while (!keyboard.pressedOnce(MIDDLE))
+    robot.setState(Robot::FOLLOW_LINE);
+    while (!keyboard.pressedOnce(Keyboard::MIDDLE))
     {
         keyboard.update();
         accelGyro.update();
+        movement.updateManeuver();
 
-        double line = spi.requestData<double>(LINE);
-        movement.setLinePosition(line);
-
+        // Update data
+        double linePosition = spi.requestData<double>(LINE);
+        movement.setLinePosition(linePosition);
         byte colorData = spi.requestData<byte>(COLOR);
-        bool greenLeft, greenRight, aluminium;
-        decodeColorData(colorData, greenLeft, greenRight, aluminium);
-        
-        movement.followLine();
+        bool isGreenLeft, isGreenRight, isAluminium;
+        decodeColorData(colorData, isGreenLeft, isGreenRight, isAluminium);
+        gui.lineFollowerGui(linePosition, isGreenLeft, isGreenRight);
 
-        if (greenLeft && greenRight)
+        // Orientation
+        if (accelGyro.getRotation().y >= 25 * DEG_TO_RAD)
         {
-            led.setColor(RGBLed::GREEN);
-            movement.turnGreenBoth();
-        }
-        else if (greenLeft)
-        {
-            led.setColor(RGBLed::GREEN);
-            movement.turnGreenLeft();
-        }
-        else if (greenRight)
-        {
-            led.setColor(RGBLed::GREEN);
-            movement.turnGreenRight();
-        }
-        else
-        {
-            led.setColor(RGBLed::BLUE);
-        }
-
-        if (10 * DEG_TO_RAD <= abs(accelGyro.getRotation().y) && abs(accelGyro.getRotation().y) <= 30 * DEG_TO_RAD)
-        {
-            if (math::sign(accelGyro.getRotation().y) > 0 && movement.getSpeedMultiplier() != 2)
+            if (movement.getSpeedMultiplier() != 2)
                 movement.setSpeedMultiplier(2);
-            if (math::sign(accelGyro.getRotation().y) < 0 && movement.getSpeedMultiplier() != 0.5)
+        }
+        else if (accelGyro.getRotation().y <= -25 * DEG_TO_RAD)
+        {
+            if (movement.getSpeedMultiplier() != 0.5)
                 movement.setSpeedMultiplier(0.5);
         }
         else if (movement.getSpeedMultiplier() != 1)
@@ -434,8 +431,59 @@ void followLine()
             movement.setSpeedMultiplier(1);
         }
 
-        gui.lineFollowerGui(line, greenLeft, greenRight);
+        switch (robot.getState())
+        {
+        case Robot::FOLLOW_LINE:
+            led.setColor(RGBLed::BLUE);
+
+            // Green
+            movement.checkGreenIgnoreTimeout();
+            if (isGreenLeft || isGreenRight)
+            {
+                if (movement.shouldInverse(isGreenLeft, isGreenRight))
+                {
+                    movement.inverse();
+                    robot.setState(Robot::MANEUVER);
+                }
+                else if (movement.shouldTurnLeft(isGreenLeft))
+                {
+                    movement.turnLeft();
+                    robot.setState(Robot::MANEUVER);
+                }
+                else if (movement.shouldTurnRight(isGreenRight))
+                {
+                    movement.turnRight();
+                    robot.setState(Robot::MANEUVER);
+                }
+            }
+
+            // Obstacle
+            // if (navigation.isObstacleInRange())
+            // {
+            //     robot.setState(Robot::AVOID_OBSTACLE);
+            //     if (navigation.getClosestSideWall() == NavigationInterface::RIGHT_WALL)
+            //         movement.startAvoidingObstacleLeft(&navigation.getNorthEastSensor());
+            //     else if (navigation.getClosestSideWall() == NavigationInterface::LEFT_WALL)
+            //         movement.startAvoidingObstacleRight(&navigation.getNorthWestSensor());
+            //     robot.setState(Robot::MANEUVER);
+            // }
+
+            movement.followLine();
+            break;
+        case Robot::MANEUVER:
+            led.setColor(RGBLed::GREEN);
+            if (!movement.isManeuverQueued() && !movement.isManeuverRunning())
+                robot.revertState();
+            break;
+        case Robot::AVOID_OBSTACLE:
+            led.setColor(RGBLed::YELLOW);
+            movement.followObstacle();
+            break;
+        case Robot::IDLE:
+            break;
+        }
     }
+    movement.clearManeuverQueue();
     movement.stop();
 }
 

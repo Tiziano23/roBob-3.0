@@ -4,8 +4,6 @@
 
 #include "line_sensor_manager.h"
 
-#define FRONT_IR A6
-
 // Communication pins ------------//
 #define GREEN_SX 5
 #define GREEN_DX 6
@@ -14,6 +12,7 @@
 //--------------------------------//
 
 // QTR Pins ----------------------//
+#define QTR_FRONT_PIN A6
 #define QTR_LED_PIN 7
 //--------------------------------//
 
@@ -55,8 +54,8 @@ struct config
     hsv rightColorData = {0, 0, 0};
 } cfg;
 
-const uint8_t sensor_pins[8] = {A5, A4, A3, A2, A1, A0, 8, 9};
-QTR_Controller qtr(sensor_pins, QTR_LED_PIN, FRONT_IR);
+uint8_t sensor_pins[8] = {A5, A4, A3, A2, A1, A0, 8, 9};
+QTR_Controller qtr = QTR_Controller(sensor_pins, QTR_FRONT_PIN, QTR_LED_PIN);
 SPISlaveInterface spi;
 
 SoftwareSerial configSerial(CONFIG_RX, CONFIG_TX);
@@ -66,17 +65,16 @@ void setup()
     Serial.begin(115200);
     configSerial.begin(9600);
 
+    eepromManager.init();
+
     pinMode(GREEN_SX, INPUT);
     pinMode(GREEN_DX, INPUT);
-    pinMode(FRONT_IR, INPUT);
 
-    eepromManager.init();
     qtr.init();
     spi.init();
 
     spi.setAction(CAL_LINE, []() {
         qtr.calibrate();
-        qtr.printCalibrationValues();
     });
     spi.setAction(CAL_WHITE, []() {
         cfg.calibrateWhite = true;
@@ -126,6 +124,8 @@ void loop()
     {
         readConfiguration();
     }
+
+    qtr.printValues();
 
     spi.setValue<double>(LINE_DATA, qtr.getLine());
     spi.setValue<byte>(COLOR_DATA, encodeColorData());

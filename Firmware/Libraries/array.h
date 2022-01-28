@@ -178,10 +178,22 @@ public:
     {
         delete[] data_arr;
     }
-
     int size()
     {
         return length;
+    }
+    void clear()
+    {
+        length = 0;
+        delete[] data_arr;
+        data_arr = new T[length];
+    }
+    T &peek()
+    {
+        if (length > 0)
+            return data_arr[length - 1];
+        else
+            return nullptr;
     }
     Queue &put(T element)
     {

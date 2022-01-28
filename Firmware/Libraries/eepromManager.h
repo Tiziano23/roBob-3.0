@@ -50,22 +50,26 @@ public:
     }
 
     template <class T>
-    T get(uint8_t id)
+    T get(uint8_t id, bool &valid)
     {
         int index = addressIdMap.findIndex([&](pair<int, uint8_t> p) { return p.b == id; });
-        if (index > -1)
+        valid = index != -1;
+        if (valid)
         {
             T data;
             EEPROM.get(addressIdMap[index].a + sizeof(uint8_t), data);
             return data;
         }
+        else
+            return nullptr;
     }
     template <class T>
-    void get(uint8_t id, T &data)
+    bool get(uint8_t id, T &data)
     {
         int index = addressIdMap.findIndex([&](pair<int, uint8_t> p) { return p.b == id; });
-        if (index > -1)
+        if (index != -1)
             EEPROM.get(addressIdMap[index].a + sizeof(uint8_t), data);
+        return index != -1;
     }
 
     void clear()
